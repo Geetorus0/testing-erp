@@ -1,0 +1,126 @@
+import { NextResponse } from 'next/server'
+
+// Mock data for student dashboard
+// In production, this would fetch from database
+export async function GET() {
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 100))
+
+  const dashboardData = {
+    studentName: 'Rahul Sharma',
+    semester: '6th Semester',
+    department: 'Computer Science & Engineering',
+    rollNumber: 'CSE2021001',
+    email: 'rahul.sharma@college.edu',
+    phone: '+91 98765 43210',
+    attendancePercentage: 87,
+    cgpa: 8.5,
+    pendingAssignments: 4,
+    upcomingExams: 2,
+    upcomingAssignments: [
+      {
+        id: '1',
+        title: 'Implement Binary Search Tree',
+        subject: 'Data Structures & Algorithms',
+        subjectCode: 'CS301',
+        dueDate: '2024-06-20',
+        dueTime: '23:59',
+        status: 'pending',
+        priority: 'high',
+        maxMarks: 30,
+      },
+      {
+        id: '2',
+        title: 'Database Normalization Report',
+        subject: 'Database Management Systems',
+        subjectCode: 'CS302',
+        dueDate: '2024-06-21',
+        dueTime: '23:59',
+        status: 'pending',
+        priority: 'medium',
+        maxMarks: 20,
+      },
+      {
+        id: '3',
+        title: 'OS Scheduling Algorithms',
+        subject: 'Operating Systems',
+        subjectCode: 'CS303',
+        dueDate: '2024-06-18',
+        dueTime: '23:59',
+        status: 'overdue',
+        priority: 'high',
+        maxMarks: 25,
+      },
+      {
+        id: '4',
+        title: 'Network Protocol Analysis',
+        subject: 'Computer Networks',
+        subjectCode: 'CS304',
+        dueDate: '2024-06-25',
+        dueTime: '23:59',
+        status: 'pending',
+        priority: 'low',
+        maxMarks: 20,
+      },
+      {
+        id: '5',
+        title: 'UML Diagrams Project',
+        subject: 'Software Engineering',
+        subjectCode: 'CS305',
+        dueDate: '2024-06-19',
+        dueTime: '18:00',
+        status: 'submitted',
+        priority: 'medium',
+        maxMarks: 50,
+      },
+    ],
+    upcomingExams: [
+      {
+        id: '1',
+        subject: 'Data Structures & Algorithms',
+        subjectCode: 'CS301',
+        examType: 'End Semester',
+        date: '2024-06-25',
+        time: '09:00',
+        duration: '3 hours',
+        venue: 'Hall A',
+        totalMarks: 100,
+      },
+      {
+        id: '2',
+        subject: 'Database Management Systems',
+        subjectCode: 'CS302',
+        examType: 'End Semester',
+        date: '2024-06-27',
+        time: '14:00',
+        duration: '3 hours',
+        venue: 'Hall B',
+        totalMarks: 100,
+      },
+      {
+        id: '3',
+        subject: 'Operating Systems',
+        subjectCode: 'CS303',
+        examType: 'End Semester',
+        date: '2024-06-29',
+        time: '09:00',
+        duration: '3 hours',
+        venue: 'Hall A',
+        totalMarks: 100,
+      },
+      {
+        id: '4',
+        subject: 'Computer Networks',
+        subjectCode: 'CS304',
+        examType: 'End Semester',
+        date: '2024-07-01',
+        time: '14:00',
+        duration: '3 hours',
+        venue: 'Hall C',
+        totalMarks: 100,
+      },
+    ],
+  }
+
+  return NextResponse.json(dashboardData)
+}
