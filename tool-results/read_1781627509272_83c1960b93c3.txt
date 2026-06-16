@@ -1,0 +1,1202 @@
+     1→     1→import {
+     2→     2→  LayoutDashboard,
+     3→     3→  Users,
+     4→     4→  GraduationCap,
+     5→     5→  BookOpen,
+     6→     6→  Calendar,
+     7→     7→  ClipboardList,
+     8→     8→  FileText,
+     9→     9→  Settings,
+    10→    10→  Building2,
+    11→    11→  Bus,
+    12→    12→  Home,
+    13→    13→  DollarSign,
+    14→    14→  Briefcase,
+    15→    15→  Library,
+    16→    16→  Bell,
+    17→    17→  UserCog,
+    18→    18→  ShieldCheck,
+    19→    19→  BarChart3,
+    20→    20→  MessageSquare,
+    21→    21→  CalendarClock,
+    22→    22→  Award,
+    23→    23→  UsersRound,
+    24→    24→  School,
+    25→    25→  BookMarked,
+    26→    26→  BusIcon,
+    27→    27→  BedDouble,
+    28→    28→  Wallet,
+    29→    29→  LucideIcon,
+    30→    30→  BadgeCheck,
+    31→    31→  FileBadge,
+    32→    32→  FolderOpen,
+    33→    33→  Clock,
+    34→    34→  Mail,
+    35→    35→  Send,
+    36→    36→  type IconNode,
+    37→    37→} from 'lucide-react';
+    38→    38→import { UserRole } from '@prisma/client';
+    39→    39→
+    40→    40→// Navigation Item Type
+    41→    41→export interface NavigationItem {
+    42→    42→  id: string;
+    43→    43→  label: string;
+    44→    44→  icon: LucideIcon;
+    45→    45→  href: string;
+    46→    46→  badge?: string | number;
+    47→    47→  children?: NavigationItem[];
+    48→    48→  permissions?: string[];
+    49→    49→  module?: string;
+    50→    50→}
+    51→    51→
+    52→    52→export interface NavigationGroup {
+    53→    53→  id: string;
+    54→    54→  label: string;
+    55→    55→  items: NavigationItem[];
+    56→    56→}
+    57→    57→
+    58→    58→// Module definitions for permissions
+    59→    59→export const MODULES = {
+    60→    60→  DASHBOARD: 'dashboard',
+    61→    61→  USERS: 'users',
+    62→    62→  STUDENTS: 'students',
+    63→    63→  FACULTY: 'faculty',
+    64→    64→  ACADEMICS: 'academics',
+    65→    65→  ATTENDANCE: 'attendance',
+    66→    66→  MARKS: 'marks',
+    67→    67→  TIMETABLE: 'timetable',
+    68→    68→  LIBRARY: 'library',
+    69→    69→  HOSTEL: 'hostel',
+    70→    70→  TRANSPORT: 'transport',
+    71→    71→  FINANCE: 'finance',
+    72→    72→  PLACEMENT: 'placement',
+    73→    73→  SETTINGS: 'settings',
+    74→    74→  NOTIFICATIONS: 'notifications',
+    75→    75→  PORTFOLIO: 'portfolio',
+    76→    76→  MENTORING: 'mentoring',
+    77→    77→  LEAVE: 'leave',
+    78→    78→  REQUESTS: 'requests',
+    79→    79→  COMMUNICATION: 'communication',
+    80→    80→  REPORTS: 'reports',
+    81→    81→  AUDIT: 'audit',
+    82→    82→} as const;
+    83→    83→
+    84→    84→// Common Navigation Items
+    85→    85→const dashboardItem: NavigationItem = {
+    86→    86→  id: 'dashboard',
+    87→    87→  label: 'Dashboard',
+    88→    88→  icon: LayoutDashboard,
+    89→    89→  href: '/dashboard',
+    90→    90→  module: MODULES.DASHBOARD,
+    91→    91→};
+    92→    92→
+    93→    93→const profileItem: NavigationItem = {
+    94→    94→  id: 'profile',
+    95→    95→  label: 'My Profile',
+    96→    96→  icon: Users,
+    97→    97→  href: '/profile',
+    98→    98→  module: MODULES.USERS,
+    99→    99→};
+   100→   100→
+   101→   101→const settingsItem: NavigationItem = {
+   102→   102→  id: 'settings',
+   103→   103→  label: 'Settings',
+   104→   104→  icon: Settings,
+   105→   105→  href: '/settings',
+   106→   106→  module: MODULES.SETTINGS,
+   107→   107→};
+   108→   108→
+   109→   109→const notificationsItem: NavigationItem = {
+   110→   110→  id: 'notifications',
+   111→   111→  label: 'Notifications',
+   112→   112→  icon: Bell,
+   113→   113→  href: '/notifications',
+   114→   114→  module: MODULES.NOTIFICATIONS,
+   115→   115→};
+   116→   116→
+   117→   117→// Student Navigation
+   118→   118→const studentNavigation: NavigationGroup[] = [
+   119→   119→  {
+   120→   120→    id: 'main',
+   121→   121→    label: 'Main',
+   122→   122→    items: [
+   123→   123→      dashboardItem,
+   124→   124→      {
+   125→   125→        id: 'portfolio',
+   126→   126→        label: 'My Portfolio',
+   127→   127→        icon: FolderOpen,
+   128→   128→        href: '/portfolio',
+   129→   129→        module: MODULES.PORTFOLIO,
+   130→   130→      },
+   131→   131→    ],
+   132→   132→  },
+   133→   133→  {
+   134→   134→    id: 'academic',
+   135→   135→    label: 'Academic',
+   136→   136→    items: [
+   137→   137→      {
+   138→   138→        id: 'attendance',
+   139→   139→        label: 'Attendance',
+   140→   140→        icon: ClipboardList,
+   141→   141→        href: '/attendance',
+   142→   142→        module: MODULES.ATTENDANCE,
+   143→   143→      },
+   144→   144→      {
+   145→   145→        id: 'marks',
+   146→   146→        label: 'Marks',
+   147→   147→        icon: FileText,
+   148→   148→        href: '/marks',
+   149→   149→        module: MODULES.MARKS,
+   150→   150→      },
+   151→   151→      {
+   152→   152→        id: 'timetable',
+   153→   153→        label: 'Timetable',
+   154→   154→        icon: Calendar,
+   155→   155→        href: '/timetable',
+   156→   156→        module: MODULES.TIMETABLE,
+   157→   157→      },
+   158→   158→      {
+   159→   159→        id: 'assignments',
+   160→   160→        label: 'Assignments',
+   161→   161→        icon: BookMarked,
+   162→   162→        href: '/assignments',
+   163→   163→        module: MODULES.ACADEMICS,
+   164→   164→      },
+   165→   165→    ],
+   166→   166→  },
+   167→   167→  {
+   168→   168→    id: 'services',
+   169→   169→    label: 'Services',
+   170→   170→    items: [
+   171→   171→      {
+   172→   172→        id: 'library',
+   173→   173→        label: 'Library',
+   174→   174→        icon: Library,
+   175→   175→        href: '/library',
+   176→   176→        module: MODULES.LIBRARY,
+   177→   177→      },
+   178→   178→      {
+   179→   179→        id: 'hostel',
+   180→   180→        label: 'Hostel',
+   181→   181→        icon: BedDouble,
+   182→   182→        href: '/hostel',
+   183→   183→        module: MODULES.HOSTEL,
+   184→   184→      },
+   185→   185→      {
+   186→   186→        id: 'transport',
+   187→   187→        label: 'Transport',
+   188→   188→        icon: BusIcon,
+   189→   189→        href: '/transport',
+   190→   190→        module: MODULES.TRANSPORT,
+   191→   191→      },
+   192→   192→      {
+   193→   193→        id: 'fees',
+   194→   194→        label: 'Fee Payment',
+   195→   195→        icon: Wallet,
+   196→   196→        href: '/fees',
+   197→   197→        module: MODULES.FINANCE,
+   198→   198→      },
+   199→   199→    ],
+   200→   200→  },
+   201→   201→  {
+   202→   202→    id: 'career',
+   203→   203→    label: 'Career',
+   204→   204→    items: [
+   205→   205→      {
+   206→   206→        id: 'placement',
+   207→   207→        label: 'Placements',
+   208→   208→        icon: Briefcase,
+   209→   209→        href: '/placement',
+   210→   210→        module: MODULES.PLACEMENT,
+   211→   211→      },
+   212→   212→    ],
+   213→   213→  },
+   214→   214→  {
+   215→   215→    id: 'personal',
+   216→   216→    label: 'Personal',
+   217→   217→    items: [
+   218→   218→      profileItem,
+   219→   219→      notificationsItem,
+   220→   220→      settingsItem,
+   221→   221→    ],
+   222→   222→  },
+   223→   223→];
+   224→   224→
+   225→   225→// Parent Navigation
+   226→   226→const parentNavigation: NavigationGroup[] = [
+   227→   227→  {
+   228→   228→    id: 'main',
+   229→   229→    label: 'Main',
+   230→   230→    items: [
+   231→   231→      dashboardItem,
+   232→   232→      {
+   233→   233→        id: 'child-progress',
+   234→   234→        label: 'Child Progress',
+   235→   235→        icon: BarChart3,
+   236→   236→        href: '/child/progress',
+   237→   237→        module: MODULES.STUDENTS,
+   238→   238→      },
+   239→   239→    ],
+   240→   240→  },
+   241→   241→  {
+   242→   242→    id: 'academic',
+   243→   243→    label: 'Academic',
+   244→   244→    items: [
+   245→   245→      {
+   246→   246→        id: 'attendance',
+   247→   247→        label: 'Attendance',
+   248→   248→        icon: ClipboardList,
+   249→   249→        href: '/child/attendance',
+   250→   250→        module: MODULES.ATTENDANCE,
+   251→   251→      },
+   252→   252→      {
+   253→   253→        id: 'marks',
+   254→   254→        label: 'Marks',
+   255→   255→        icon: FileText,
+   256→   256→        href: '/child/marks',
+   257→   257→        module: MODULES.MARKS,
+   258→   258→      },
+   259→   259→      {
+   260→   260→        id: 'timetable',
+   261→   261→        label: 'Timetable',
+   262→   262→        icon: Calendar,
+   263→   263→        href: '/child/timetable',
+   264→   264→        module: MODULES.TIMETABLE,
+   265→   265→      },
+   266→   266→    ],
+   267→   267→  },
+   268→   268→  {
+   269→   269→    id: 'finance',
+   270→   270→    label: 'Finance',
+   271→   271→    items: [
+   272→   272→      {
+   273→   273→        id: 'fees',
+   274→   274→        label: 'Fee Payment',
+   275→   275→        icon: Wallet,
+   276→   276→        href: '/fees',
+   277→   277→        module: MODULES.FINANCE,
+   278→   278→      },
+   279→   279→    ],
+   280→   280→  },
+   281→   281→  {
+   282→   282→    id: 'personal',
+   283→   283→    label: 'Personal',
+   284→   284→    items: [
+   285→   285→      profileItem,
+   286→   286→      notificationsItem,
+   287→   287→      settingsItem,
+   288→   288→    ],
+   289→   289→  },
+   290→   290→];
+   291→   291→
+   292→   292→// Faculty Navigation
+   293→   293→const facultyNavigation: NavigationGroup[] = [
+   294→   294→  {
+   295→   295→    id: 'main',
+   296→   296→    label: 'Main',
+   297→   297→    items: [
+   298→   298→      dashboardItem,
+   299→   299→      {
+   300→   300→        id: 'my-classes',
+   301→   301→        label: 'My Classes',
+   302→   302→        icon: School,
+   303→   303→        href: '/classes',
+   304→   304→        module: MODULES.ACADEMICS,
+   305→   305→      },
+   306→   306→    ],
+   307→   307→  },
+   308→   308→  {
+   309→   309→    id: 'academic',
+   310→   310→    label: 'Academic',
+   311→   311→    items: [
+   312→   312→      {
+   313→   313→        id: 'students',
+   314→   314→        label: 'Students',
+   315→   315→        icon: GraduationCap,
+   316→   316→        href: '/students',
+   317→   317→        module: MODULES.STUDENTS,
+   318→   318→      },
+   319→   319→      {
+   320→   320→        id: 'attendance',
+   321→   321→        label: 'Attendance',
+   322→   322→        icon: ClipboardList,
+   323→   323→        href: '/attendance',
+   324→   324→        module: MODULES.ATTENDANCE,
+   325→   325→      },
+   326→   326→      {
+   327→   327→        id: 'marks',
+   328→   328→        label: 'Marks Entry',
+   329→   329→        icon: FileText,
+   330→   330→        href: '/marks',
+   331→   331→        module: MODULES.MARKS,
+   332→   332→      },
+   333→   333→      {
+   334→   334→        id: 'timetable',
+   335→   335→        label: 'Timetable',
+   336→   336→        icon: Calendar,
+   337→   337→        href: '/timetable',
+   338→   338→        module: MODULES.TIMETABLE,
+   339→   339→      },
+   340→   340→      {
+   341→   341→        id: 'assignments',
+   342→   342→        label: 'Assignments',
+   343→   343→        icon: BookMarked,
+   344→   344→        href: '/assignments',
+   345→   345→        module: MODULES.ACADEMICS,
+   346→   346→      },
+   347→   347→      {
+   348→   348→        id: 'materials',
+   349→   349→        label: 'Study Materials',
+   350→   350→        icon: BookOpen,
+   351→   351→        href: '/materials',
+   352→   352→        module: MODULES.ACADEMICS,
+   353→   353→      },
+   354→   354→    ],
+   355→   355→  },
+   356→   356→  {
+   357→   357→    id: 'services',
+   358→   358→    label: 'Services',
+   359→   359→    items: [
+   360→   360→      {
+   361→   361→        id: 'leave',
+   362→   362→        label: 'Leave Management',
+   363→   363→        icon: CalendarClock,
+   364→   364→        href: '/leave',
+   365→   365→        module: MODULES.LEAVE,
+   366→   366→      },
+   367→   367→    ],
+   368→   368→  },
+   369→   369→  {
+   370→   370→    id: 'personal',
+   371→   371→    label: 'Personal',
+   372→   372→    items: [
+   373→   373→      profileItem,
+   374→   374→      notificationsItem,
+   375→   375→      settingsItem,
+   376→   376→    ],
+   377→   377→  },
+   378→   378→];
+   379→   379→
+   380→   380→// Mentor Navigation
+   381→   381→const mentorNavigation: NavigationGroup[] = [
+   382→   382→  {
+   383→   383→    id: 'main',
+   384→   384→    label: 'Main',
+   385→   385→    items: [
+   386→   386→      dashboardItem,
+   387→   387→      {
+   388→   388→        id: 'mentees',
+   389→   389→        label: 'My Mentees',
+   390→   390→        icon: UsersRound,
+   391→   391→        href: '/mentees',
+   392→   392→        module: MODULES.MENTORING,
+   393→   393→      },
+   394→   394→    ],
+   395→   395→  },
+   396→   396→  {
+   397→   397→    id: 'mentoring',
+   398→   398→    label: 'Mentoring',
+   399→   399→    items: [
+   400→   400→      {
+   401→   401→        id: 'counseling',
+   402→   402→        label: 'Counseling Notes',
+   403→   403→        icon: MessageSquare,
+   404→   404→        href: '/counseling',
+   405→   405→        module: MODULES.MENTORING,
+   406→   406→      },
+   407→   407→      {
+   408→   408→        id: 'attendance',
+   409→   409→        label: 'Attendance',
+   410→   410→        icon: ClipboardList,
+   411→   411→        href: '/mentees/attendance',
+   412→   412→        module: MODULES.ATTENDANCE,
+   413→   413→      },
+   414→   414→      {
+   415→   415→        id: 'marks',
+   416→   416→        label: 'Academic Progress',
+   417→   417→        icon: BarChart3,
+   418→   418→        href: '/mentees/progress',
+   419→   419→        module: MODULES.MARKS,
+   420→   420→      },
+   421→   421→      {
+   422→   422→        id: 'portfolio',
+   423→   423→        label: 'Portfolio Review',
+   424→   424→        icon: FolderOpen,
+   425→   425→        href: '/mentees/portfolio',
+   426→   426→        module: MODULES.PORTFOLIO,
+   427→   427→      },
+   428→   428→    ],
+   429→   429→  },
+   430→   430→  {
+   431→   431→    id: 'communication',
+   432→   432→    label: 'Communication',
+   433→   433→    items: [
+   434→   434→      {
+   435→   435→        id: 'parent-contact',
+   436→   436→        label: 'Parent Contact',
+   437→   437→        icon: Mail,
+   438→   438→        href: '/parents',
+   439→   439→        module: MODULES.COMMUNICATION,
+   440→   440→      },
+   441→   441→    ],
+   442→   442→  },
+   443→   443→  {
+   444→   444→    id: 'personal',
+   445→   445→    label: 'Personal',
+   446→   446→    items: [
+   447→   447→      profileItem,
+   448→   448→      notificationsItem,
+   449→   449→      settingsItem,
+   450→   450→    ],
+   451→   451→  },
+   452→   452→];
+   453→   453→
+   454→   454→// HOD Navigation
+   455→   455→const hodNavigation: NavigationGroup[] = [
+   456→   456→  {
+   457→   457→    id: 'main',
+   458→   458→    label: 'Main',
+   459→   459→    items: [
+   460→   460→      dashboardItem,
+   461→   461→      {
+   462→   462→        id: 'department',
+   463→   463→        label: 'Department',
+   464→   464→        icon: Building2,
+   465→   465→        href: '/department',
+   466→   466→        module: MODULES.ACADEMICS,
+   467→   467→      },
+   468→   468→    ],
+   469→   469→  },
+   470→   470→  {
+   471→   471→    id: 'people',
+   472→   472→    label: 'People',
+   473→   473→    items: [
+   474→   474→      {
+   475→   475→        id: 'faculty',
+   476→   476→        label: 'Faculty',
+   477→   477→        icon: Users,
+   478→   478→        href: '/faculty',
+   479→   479→        module: MODULES.FACULTY,
+   480→   480→      },
+   481→   481→      {
+   482→   482→        id: 'students',
+   483→   483→        label: 'Students',
+   484→   484→        icon: GraduationCap,
+   485→   485→        href: '/students',
+   486→   486→        module: MODULES.STUDENTS,
+   487→   487→      },
+   488→   488→    ],
+   489→   489→  },
+   490→   490→  {
+   491→   491→    id: 'academic',
+   492→   492→    label: 'Academic',
+   493→   493→    items: [
+   494→   494→      {
+   495→   495→        id: 'attendance',
+   496→   496→        label: 'Attendance',
+   497→   497→        icon: ClipboardList,
+   498→   498→        href: '/attendance',
+   499→   499→        module: MODULES.ATTENDANCE,
+   500→   500→      },
+   501→   501→      {
+   502→   502→        id: 'marks',
+   503→   503→        label: 'Marks & Results',
+   504→   504→        icon: FileText,
+   505→   505→        href: '/marks',
+   506→   506→        module: MODULES.MARKS,
+   507→   507→      },
+   508→   508→      {
+   509→   509→        id: 'timetable',
+   510→   510→        label: 'Timetable',
+   511→   511→        icon: Calendar,
+   512→   512→        href: '/timetable',
+   513→   513→        module: MODULES.TIMETABLE,
+   514→   514→      },
+   515→   515→      {
+   516→   516→        id: 'subjects',
+   517→   517→        label: 'Subjects',
+   518→   518→        icon: BookOpen,
+   519→   519→        href: '/subjects',
+   520→   520→        module: MODULES.ACADEMICS,
+   521→   521→      },
+   522→   522→    ],
+   523→   523→  },
+   524→   524→  {
+   525→   525→    id: 'reports',
+   526→   526→    label: 'Reports',
+   527→   527→    items: [
+   528→   528→      {
+   529→   529→        id: 'analytics',
+   530→   530→        label: 'Analytics',
+   531→   531→        icon: BarChart3,
+   532→   532→        href: '/analytics',
+   533→   533→        module: MODULES.REPORTS,
+   534→   534→      },
+   535→   535→    ],
+   536→   536→  },
+   537→   537→  {
+   538→   538→    id: 'personal',
+   539→   539→    label: 'Personal',
+   540→   540→    items: [
+   541→   541→      profileItem,
+   542→   542→      notificationsItem,
+   543→   543→      settingsItem,
+   544→   544→    ],
+   545→   545→  },
+   546→   546→];
+   547→   547→
+   548→   548→// Dean Navigation
+   549→   549→const deanNavigation: NavigationGroup[] = [
+   550→   550→  {
+   551→   551→    id: 'main',
+   552→   552→    label: 'Main',
+   553→   553→    items: [
+   554→   554→      dashboardItem,
+   555→   555→      {
+   556→   556→        id: 'departments',
+   557→   557→        label: 'Departments',
+   558→   558→        icon: Building2,
+   559→   559→        href: '/departments',
+   560→   560→        module: MODULES.ACADEMICS,
+   561→   561→      },
+   562→   562→    ],
+   563→   563→  },
+   564→   564→  {
+   565→   565→    id: 'people',
+   566→   566→    label: 'People',
+   567→   567→    items: [
+   568→   568→      {
+   569→   569→        id: 'faculty',
+   570→   570→        label: 'Faculty',
+   571→   571→        icon: Users,
+   572→   572→        href: '/faculty',
+   573→   573→        module: MODULES.FACULTY,
+   574→   574→      },
+   575→   575→      {
+   576→   576→        id: 'students',
+   577→   577→        label: 'Students',
+   578→   578→        icon: GraduationCap,
+   579→   579→        href: '/students',
+   580→   580→        module: MODULES.STUDENTS,
+   581→   581→      },
+   582→   582→    ],
+   583→   583→  },
+   584→   584→  {
+   585→   585→    id: 'academic',
+   586→   586→    label: 'Academic',
+   587→   587→    items: [
+   588→   588→      {
+   589→   589→        id: 'attendance',
+   590→   590→        label: 'Attendance',
+   591→   591→        icon: ClipboardList,
+   592→   592→        href: '/attendance',
+   593→   593→        module: MODULES.ATTENDANCE,
+   594→   594→      },
+   595→   595→      {
+   596→   596→        id: 'marks',
+   597→   597→        label: 'Marks & Results',
+   598→   598→        icon: FileText,
+   599→   599→        href: '/marks',
+   600→   600→        module: MODULES.MARKS,
+   601→   601→      },
+   602→   602→      {
+   603→   603→        id: 'timetable',
+   604→   604→        label: 'Timetable',
+   605→   605→        icon: Calendar,
+   606→   606→        href: '/timetable',
+   607→   607→        module: MODULES.TIMETABLE,
+   608→   608→      },
+   609→   609→    ],
+   610→   610→  },
+   611→   611→  {
+   612→   612→    id: 'reports',
+   613→   613→    label: 'Reports',
+   614→   614→    items: [
+   615→   615→      {
+   616→   616→        id: 'analytics',
+   617→   617→        label: 'Analytics',
+   618→   618→        icon: BarChart3,
+   619→   619→        href: '/analytics',
+   620→   620→        module: MODULES.REPORTS,
+   621→   621→      },
+   622→   622→    ],
+   623→   623→  },
+   624→   624→  {
+   625→   625→    id: 'personal',
+   626→   626→    label: 'Personal',
+   627→   627→    items: [
+   628→   628→      profileItem,
+   629→   629→      notificationsItem,
+   630→   630→      settingsItem,
+   631→   631→    ],
+   632→   632→  },
+   633→   633→];
+   634→   634→
+   635→   635→// Principal Navigation
+   636→   636→const principalNavigation: NavigationGroup[] = [
+   637→   637→  {
+   638→   638→    id: 'main',
+   639→   639→    label: 'Main',
+   640→   640→    items: [
+   641→   641→      dashboardItem,
+   642→   642→      {
+   643→   643→        id: 'departments',
+   644→   644→        label: 'Departments',
+   645→   645→        icon: Building2,
+   646→   646→        href: '/departments',
+   647→   647→        module: MODULES.ACADEMICS,
+   648→   648→      },
+   649→   649→    ],
+   650→   650→  },
+   651→   651→  {
+   652→   652→    id: 'people',
+   653→   653→    label: 'People',
+   654→   654→    items: [
+   655→   655→      {
+   656→   656→        id: 'users',
+   657→   657→        label: 'User Management',
+   658→   658→        icon: UserCog,
+   659→   659→        href: '/users',
+   660→   660→        module: MODULES.USERS,
+   661→   661→      },
+   662→   662→      {
+   663→   663→        id: 'faculty',
+   664→   664→        label: 'Faculty',
+   665→   665→        icon: Users,
+   666→   666→        href: '/faculty',
+   667→   667→        module: MODULES.FACULTY,
+   668→   668→      },
+   669→   669→      {
+   670→   670→        id: 'students',
+   671→   671→        label: 'Students',
+   672→   672→        icon: GraduationCap,
+   673→   673→        href: '/students',
+   674→   674→        module: MODULES.STUDENTS,
+   675→   675→      },
+   676→   676→    ],
+   677→   677→  },
+   678→   678→  {
+   679→   679→    id: 'academic',
+   680→   680→    label: 'Academic',
+   681→   681→    items: [
+   682→   682→      {
+   683→   683→        id: 'attendance',
+   684→   684→        label: 'Attendance',
+   685→   685→        icon: ClipboardList,
+   686→   686→        href: '/attendance',
+   687→   687→        module: MODULES.ATTENDANCE,
+   688→   688→      },
+   689→   689→      {
+   690→   690→        id: 'marks',
+   691→   691→        label: 'Marks & Results',
+   692→   692→        icon: FileText,
+   693→   693→        href: '/marks',
+   694→   694→        module: MODULES.MARKS,
+   695→   695→      },
+   696→   696→      {
+   697→   697→        id: 'timetable',
+   698→   698→        label: 'Timetable',
+   699→   699→        icon: Calendar,
+   700→   700→        href: '/timetable',
+   701→   701→        module: MODULES.TIMETABLE,
+   702→   702→      },
+   703→   703→    ],
+   704→   704→  },
+   705→   705→  {
+   706→   706→    id: 'services',
+   707→   707→    label: 'Services',
+   708→   708→    items: [
+   709→   709→      {
+   710→   710→        id: 'hostel',
+   711→   711→        label: 'Hostel',
+   712→   712→        icon: BedDouble,
+   713→   713→        href: '/hostel',
+   714→   714→        module: MODULES.HOSTEL,
+   715→   715→      },
+   716→   716→      {
+   717→   717→        id: 'transport',
+   718→   718→        label: 'Transport',
+   719→   719→        icon: Bus,
+   720→   720→        href: '/transport',
+   721→   721→        module: MODULES.TRANSPORT,
+   722→   722→      },
+   723→   723→      {
+   724→   724→        id: 'library',
+   725→   725→        label: 'Library',
+   726→   726→        icon: Library,
+   727→   727→        href: '/library',
+   728→   728→        module: MODULES.LIBRARY,
+   729→   729→      },
+   730→   730→    ],
+   731→   731→  },
+   732→   732→  {
+   733→   733→    id: 'reports',
+   734→   734→    label: 'Reports & Analytics',
+   735→   735→    items: [
+   736→   736→      {
+   737→   737→        id: 'analytics',
+   738→   738→        label: 'Analytics',
+   739→   739→        icon: BarChart3,
+   740→   740→        href: '/analytics',
+   741→   741→        module: MODULES.REPORTS,
+   742→   742→      },
+   743→   743→      {
+   744→   744→        id: 'audit',
+   745→   745→        label: 'Audit Logs',
+   746→   746→        icon: FileBadge,
+   747→   747→        href: '/audit',
+   748→   748→        module: MODULES.AUDIT,
+   749→   749→      },
+   750→   750→    ],
+   751→   751→  },
+   752→   752→  {
+   753→   753→    id: 'personal',
+   754→   754→    label: 'Personal',
+   755→   755→    items: [
+   756→   756→      profileItem,
+   757→   757→      notificationsItem,
+   758→   758→      settingsItem,
+   759→   759→    ],
+   760→   760→  },
+   761→   761→];
+   762→   762→
+   763→   763→// Super Admin Navigation
+   764→   764→const superAdminNavigation: NavigationGroup[] = [
+   765→   765→  {
+   766→   766→    id: 'main',
+   767→   767→    label: 'Main',
+   768→   768→    items: [
+   769→   769→      dashboardItem,
+   770→   770→      {
+   771→   771→        id: 'tenants',
+   772→   772→        label: 'Tenants',
+   773→   773→        icon: Building2,
+   774→   774→        href: '/tenants',
+   775→   775→        module: MODULES.SETTINGS,
+   776→   776→      },
+   777→   777→    ],
+   778→   778→  },
+   779→   779→  {
+   780→   780→    id: 'administration',
+   781→   781→    label: 'Administration',
+   782→   782→    items: [
+   783→   783→      {
+   784→   784→        id: 'users',
+   785→   785→        label: 'User Management',
+   786→   786→        icon: UserCog,
+   787→   787→        href: '/users',
+   788→   788→        module: MODULES.USERS,
+   789→   789→      },
+   790→   790→      {
+   791→   791→        id: 'roles',
+   792→   792→        label: 'Roles & Permissions',
+   793→   793→        icon: ShieldCheck,
+   794→   794→        href: '/roles',
+   795→   795→        module: MODULES.SETTINGS,
+   796→   796→      },
+   797→   797→      {
+   798→   798→        id: 'audit',
+   799→   799→        label: 'Audit Logs',
+   800→   800→        icon: FileBadge,
+   801→   801→        href: '/audit',
+   802→   802→        module: MODULES.AUDIT,
+   803→   803→      },
+   804→   804→    ],
+   805→   805→  },
+   806→   806→  {
+   807→   807→    id: 'settings',
+   808→   808→    label: 'Settings',
+   809→   809→    items: [
+   810→   810→      {
+   811→   811→        id: 'system-settings',
+   812→   812→        label: 'System Settings',
+   813→   813→        icon: Settings,
+   814→   814→        href: '/system/settings',
+   815→   815→        module: MODULES.SETTINGS,
+   816→   816→      },
+   817→   817→      {
+   818→   818→        id: 'plans',
+   819→   819→        label: 'Subscription Plans',
+   820→   820→        icon: Award,
+   821→   821→        href: '/plans',
+   822→   822→        module: MODULES.SETTINGS,
+   823→   823→      },
+   824→   824→    ],
+   825→   825→  },
+   826→   826→  {
+   827→   827→    id: 'reports',
+   828→   828→    label: 'Reports',
+   829→   829→    items: [
+   830→   830→      {
+   831→   831→        id: 'analytics',
+   832→   832→        label: 'Analytics',
+   833→   833→        icon: BarChart3,
+   834→   834→        href: '/analytics',
+   835→   835→        module: MODULES.REPORTS,
+   836→   836→      },
+   837→   837→    ],
+   838→   838→  },
+   839→   839→  {
+   840→   840→    id: 'personal',
+   841→   841→    label: 'Personal',
+   842→   842→    items: [
+   843→   843→      profileItem,
+   844→   844→      notificationsItem,
+   845→   845→      settingsItem,
+   846→   846→    ],
+   847→   847→  },
+   848→   848→];
+   849→   849→
+   850→   850→// Placement Officer Navigation
+   851→   851→const placementOfficerNavigation: NavigationGroup[] = [
+   852→   852→  {
+   853→   853→    id: 'main',
+   854→   854→    label: 'Main',
+   855→   855→    items: [
+   856→   856→      dashboardItem,
+   857→   857→      {
+   858→   858→        id: 'companies',
+   859→   859→        label: 'Companies',
+   860→   860→        icon: Building2,
+   861→   861→        href: '/companies',
+   862→   862→        module: MODULES.PLACEMENT,
+   863→   863→      },
+   864→   864→    ],
+   865→   865→  },
+   866→   866→  {
+   867→   867→    id: 'placement',
+   868→   868→    label: 'Placement',
+   869→   869→    items: [
+   870→   870→      {
+   871→   871→        id: 'drives',
+   872→   872→        label: 'Placement Drives',
+   873→   873→        icon: Briefcase,
+   874→   874→        href: '/drives',
+   875→   875→        module: MODULES.PLACEMENT,
+   876→   876→      },
+   877→   877→      {
+   878→   878→        id: 'students',
+   879→   879→        label: 'Students',
+   880→   880→        icon: GraduationCap,
+   881→   881→        href: '/students',
+   882→   882→        module: MODULES.STUDENTS,
+   883→   883→      },
+   884→   884→      {
+   885→   885→        id: 'interviews',
+   886→   886→        label: 'Interviews',
+   887→   887→        icon: MessageSquare,
+   888→   888→        href: '/interviews',
+   889→   889→        module: MODULES.PLACEMENT,
+   890→   890→      },
+   891→   891→      {
+   892→   892→        id: 'offers',
+   893→   893→        label: 'Offers',
+   894→   894→        icon: BadgeCheck,
+   895→   895→        href: '/offers',
+   896→   896→        module: MODULES.PLACEMENT,
+   897→   897→      },
+   898→   898→    ],
+   899→   899→  },
+   900→   900→  {
+   901→   901→    id: 'reports',
+   902→   902→    label: 'Reports',
+   903→   903→    items: [
+   904→   904→      {
+   905→   905→        id: 'analytics',
+   906→   906→        label: 'Placement Stats',
+   907→   907→        icon: BarChart3,
+   908→   908→        href: '/analytics',
+   909→   909→        module: MODULES.REPORTS,
+   910→   910→      },
+   911→   911→    ],
+   912→   912→  },
+   913→   913→  {
+   914→   914→    id: 'personal',
+   915→   915→    label: 'Personal',
+   916→   916→    items: [
+   917→   917→      profileItem,
+   918→   918→      notificationsItem,
+   919→   919→      settingsItem,
+   920→   920→    ],
+   921→   921→  },
+   922→   922→];
+   923→   923→
+   924→   924→// Finance Officer Navigation
+   925→   925→const financeOfficerNavigation: NavigationGroup[] = [
+   926→   926→  {
+   927→   927→    id: 'main',
+   928→   928→    label: 'Main',
+   929→   929→    items: [
+   930→   930→      dashboardItem,
+   931→   931→    ],
+   932→   932→  },
+   933→   933→  {
+   934→   934→    id: 'finance',
+   935→   935→    label: 'Finance',
+   936→   936→    items: [
+   937→   937→      {
+   938→   938→        id: 'fees',
+   939→   939→        label: 'Fee Structure',
+   940→   940→        icon: DollarSign,
+   941→   941→        href: '/fees',
+   942→   942→        module: MODULES.FINANCE,
+   943→   943→      },
+   944→   944→      {
+   945→   945→        id: 'payments',
+   946→   946→        label: 'Payments',
+   947→   947→        icon: Wallet,
+   948→   948→        href: '/payments',
+   949→   949→        module: MODULES.FINANCE,
+   950→   950→      },
+   951→   951→      {
+   952→   952→        id: 'scholarships',
+   953→   953→        label: 'Scholarships',
+   954→   954→        icon: Award,
+   955→   955→        href: '/scholarships',
+   956→   956→        module: MODULES.FINANCE,
+   957→   957→      },
+   958→   958→    ],
+   959→   959→  },
+   960→   960→  {
+   961→   961→    id: 'reports',
+   962→   962→    label: 'Reports',
+   963→   963→    items: [
+   964→   964→      {
+   965→   965→        id: 'analytics',
+   966→   966→        label: 'Financial Reports',
+   967→   967→        icon: BarChart3,
+   968→   968→        href: '/analytics',
+   969→   969→        module: MODULES.REPORTS,
+   970→   970→      },
+   971→   971→    ],
+   972→   972→  },
+   973→   973→  {
+   974→   974→    id: 'personal',
+   975→   975→    label: 'Personal',
+   976→   976→    items: [
+   977→   977→      profileItem,
+   978→   978→      notificationsItem,
+   979→   979→      settingsItem,
+   980→   980→    ],
+   981→   981→  },
+   982→   982→];
+   983→   983→
+   984→   984→// Librarian Navigation
+   985→   985→const librarianNavigation: NavigationGroup[] = [
+   986→   986→  {
+   987→   987→    id: 'main',
+   988→   988→    label: 'Main',
+   989→   989→    items: [
+   990→   990→      dashboardItem,
+   991→   991→    ],
+   992→   992→  },
+   993→   993→  {
+   994→   994→    id: 'library',
+   995→   995→    label: 'Library',
+   996→   996→    items: [
+   997→   997→      {
+   998→   998→        id: 'books',
+   999→   999→        label: 'Books',
+  1000→  1000→        icon: BookOpen,
+  1001→  1001→        href: '/books',
+  1002→  1002→        module: MODULES.LIBRARY,
+  1003→  1003→      },
+  1004→  1004→      {
+  1005→  1005→        id: 'issues',
+  1006→  1006→        label: 'Issues & Returns',
+  1007→  1007→        icon: BookMarked,
+  1008→  1008→        href: '/issues',
+  1009→  1009→        module: MODULES.LIBRARY,
+  1010→  1010→      },
+  1011→  1011→      {
+  1012→  1012→        id: 'students',
+  1013→  1013→        label: 'Members',
+  1014→  1014→        icon: GraduationCap,
+  1015→  1015→        href: '/members',
+  1016→  1016→        module: MODULES.STUDENTS,
+  1017→  1017→      },
+  1018→  1018→    ],
+  1019→  1019→  },
+  1020→  1020→  {
+  1021→  1021→    id: 'reports',
+  1022→  1022→    label: 'Reports',
+  1023→  1023→    items: [
+  1024→  1024→      {
+  1025→  1025→        id: 'analytics',
+  1026→  1026→        label: 'Library Stats',
+  1027→  1027→        icon: BarChart3,
+  1028→  1028→        href: '/analytics',
+  1029→  1029→        module: MODULES.REPORTS,
+  1030→  1030→      },
+  1031→  1031→    ],
+  1032→  1032→  },
+  1033→  1033→  {
+  1034→  1034→    id: 'personal',
+  1035→  1035→    label: 'Personal',
+  1036→  1036→    items: [
+  1037→  1037→      profileItem,
+  1038→  1038→      notificationsItem,
+  1039→  1039→      settingsItem,
+  1040→  1040→    ],
+  1041→  1041→  },
+  1042→  1042→];
+  1043→  1043→
+  1044→  1044→// Hostel Warden Navigation
+  1045→  1045→const hostelWardenNavigation: NavigationGroup[] = [
+  1046→  1046→  {
+  1047→  1047→    id: 'main',
+  1048→  1048→    label: 'Main',
+  1049→  1049→    items: [
+  1050→  1050→      dashboardItem,
+  1051→  1051→    ],
+  1052→  1052→  },
+  1053→  1053→  {
+  1054→  1054→    id: 'hostel',
+  1055→  1055→    label: 'Hostel',
+  1056→  1056→    items: [
+  1057→  1057→      {
+  1058→  1058→        id: 'hostels',
+  1059→  1059→        label: 'Hostels',
+  1060→  1060→        icon: Home,
+  1061→  1061→        href: '/hostels',
+  1062→  1062→        module: MODULES.HOSTEL,
+  1063→  1063→      },
+  1064→  1064→      {
+  1065→  1065→        id: 'rooms',
+  1066→  1066→        label: 'Rooms',
+  1067→  1067→        icon: BedDouble,
+  1068→  1068→        href: '/rooms',
+  1069→  1069→        module: MODULES.HOSTEL,
+  1070→  1070→      },
+  1071→  1071→      {
+  1072→  1072→        id: 'allocations',
+  1073→  1073→        label: 'Allocations',
+  1074→  1074→        icon: Users,
+  1075→  1075→        href: '/allocations',
+  1076→  1076→        module: MODULES.HOSTEL,
+  1077→  1077→      },
+  1078→  1078→      {
+  1079→  1079→        id: 'complaints',
+  1080→  1080→        label: 'Complaints',
+  1081→  1081→        icon: MessageSquare,
+  1082→  1082→        href: '/complaints',
+  1083→  1083→        module: MODULES.HOSTEL,
+  1084→  1084→      },
+  1085→  1085→    ],
+  1086→  1086→  },
+  1087→  1087→  {
+  1088→  1088→    id: 'personal',
+  1089→  1089→    label: 'Personal',
+  1090→  1090→    items: [
+  1091→  1091→      profileItem,
+  1092→  1092→      notificationsItem,
+  1093→  1093→      settingsItem,
+  1094→  1094→    ],
+  1095→  1095→  },
+  1096→  1096→];
+  1097→  1097→
+  1098→  1098→// Transport Manager Navigation
+  1099→  1099→const transportManagerNavigation: NavigationGroup[] = [
+  1100→  1100→  {
+  1101→  1101→    id: 'main',
+  1102→  1102→    label: 'Main',
+  1103→  1103→    items: [
+  1104→  1104→      dashboardItem,
+  1105→  1105→    ],
+  1106→  1106→  },
+  1107→  1107→  {
+  1108→  1108→    id: 'transport',
+  1109→  1109→    label: 'Transport',
+  1110→  1110→    items: [
+  1111→  1111→      {
+  1112→  1112→        id: 'buses',
+  1113→  1113→        label: 'Buses',
+  1114→  1114→        icon: Bus,
+  1115→  1115→        href: '/buses',
+  1116→  1116→        module: MODULES.TRANSPORT,
+  1117→  1117→      },
+  1118→  1118→      {
+  1119→  1119→        id: 'routes',
+  1120→  1120→        label: 'Routes',
+  1121→  1121→        icon: Clock,
+  1122→  1122→        href: '/routes',
+  1123→  1123→        module: MODULES.TRANSPORT,
+  1124→  1124→      },
+  1125→  1125→      {
+  1126→  1126→        id: 'allocations',
+  1127→  1127→        label: 'Allocations',
+  1128→  1128→        icon: Users,
+  1129→  1129→        href: '/allocations',
+  1130→  1130→        module: MODULES.TRANSPORT,
+  1131→  1131→      },
+  1132→  1132→    ],
+  1133→  1133→  },
+  1134→  1134→  {
+  1135→  1135→    id: 'personal',
+  1136→  1136→    label: 'Personal',
+  1137→  1137→    items: [
+  1138→  1138→      profileItem,
+  1139→  1139→      notificationsItem,
+  1140→  1140→      settingsItem,
+  1141→  1141→    ],
+  1142→  1142→  },
+  1143→  1143→];
+  1144→  1144→
+  1145→  1145→// Navigation mapping by role
+  1146→  1146→export const navigationByRole: Record<UserRole, NavigationGroup[]> = {
+  1147→  1147→  [UserRole.SUPER_ADMIN]: superAdminNavigation,
+  1148→  1148→  [UserRole.PRINCIPAL]: principalNavigation,
+  1149→  1149→  [UserRole.DEAN]: deanNavigation,
+  1150→  1150→  [UserRole.HOD]: hodNavigation,
+  1151→  1151→  [UserRole.FACULTY]: facultyNavigation,
+  1152→  1152→  [UserRole.MENTOR]: mentorNavigation,
+  1153→  1153→  [UserRole.STUDENT]: studentNavigation,
+  1154→  1154→  [UserRole.PARENT]: parentNavigation,
+  1155→  1155→  [UserRole.PLACEMENT_OFFICER]: placementOfficerNavigation,
+  1156→  1156→  [UserRole.FINANCE_OFFICER]: financeOfficerNavigation,
+  1157→  1157→  [UserRole.LIBRARIAN]: librarianNavigation,
+  1158→  1158→  [UserRole.HOSTEL_WARDEN]: hostelWardenNavigation,
+  1159→  1159→  [UserRole.TRANSPORT_MANAGER]: transportManagerNavigation,
+  1160→  1160→};
+  1161→  1161→
+  1162→  1162→// Get navigation for a specific role
+  1163→  1163→export function getNavigationForRole(role: UserRole): NavigationGroup[] {
+  1164→  1164→  return navigationByRole[role] || studentNavigation;
+  1165→  1165→}
+  1166→  1166→
+  1167→  1167→// Get all unique modules for a role
+  1168→  1168→export function getModulesForRole(role: UserRole): string[] {
+  1169→  1169→  const navigation = navigationByRole[role];
+  1170→  1170→  const modules = new Set<string>();
+  1171→  1171→  
+  1172→  1172→  navigation.forEach(group => {
+  1173→  1173→    group.items.forEach(item => {
+  1174→  1174→      if (item.module) {
+  1175→  1175→        modules.add(item.module);
+  1176→  1176→      }
+  1177→  1177→    });
+  1178→  1178→  });
+  1179→  1179→  
+  1180→  1180→  return Array.from(modules);
+  1181→  1181→}
+  1182→  1182→
+  1183→  1183→// Check if user has access to a module
+  1184→  1184→export function hasModuleAccess(userRole: UserRole, module: string): boolean {
+  1185→  1185→  const modules = getModulesForRole(userRole);
+  1186→  1186→  return modules.includes(module);
+  1187→  1187→}
+  1188→  1188→
+  1189→  1189→// Get navigation item by id for a role
+  1190→  1190→export function getNavigationItemById(role: UserRole, itemId: string): NavigationItem | undefined {
+  1191→  1191→  const navigation = navigationByRole[role];
+  1192→  1192→  
+  1193→  1193→  for (const group of navigation) {
+  1194→  1194→    const item = group.items.find(item => item.id === itemId);
+  1195→  1195→    if (item) return item;
+  1196→  1196→  }
+  1197→  1197→  
+  1198→  1198→  return undefined;
+  1199→  1199→}
+  1200→  1200→
+  1201→  1201→export default navigationByRole;
+  1202→  1202→

@@ -1,0 +1,1340 @@
+     1→     1→// GEETORUS CAMPUSOS - Enterprise College ERP SaaS
+     2→     2→// Complete Database Schema with Multi-Tenancy
+     3→     3→
+     4→     4→generator client {
+     5→     5→  provider = "prisma-client-js"
+     6→     6→}
+     7→     7→
+     8→     8→datasource db {
+     9→     9→  provider = "sqlite"
+    10→    10→  url      = env("DATABASE_URL")
+    11→    11→}
+    12→    12→
+    13→    13→// =====================================================
+    14→    14→// MULTI-TENANT FOUNDATION
+    15→    15→// =====================================================
+    16→    16→
+    17→    17→model Tenant {
+    18→    18→  id            String   @id @default(cuid())
+    19→    19→  name          String
+    20→    20→  slug          String   @unique
+    21→    21→  domain        String?  @unique
+    22→    22→  logo          String?
+    23→    23→  primaryColor  String   @default("#10B981")
+    24→    24→  secondaryColor String  @default("#059669")
+    25→    25→  isActive      Boolean  @default(true)
+    26→    26→  planId        String?
+    27→    27→  subscriptionStart DateTime?
+    28→    28→  subscriptionEnd  DateTime?
+    29→    29→  maxStudents   Int      @default(1000)
+    30→    30→  maxFaculty    Int      @default(100)
+    31→    31→  maxStorage    Int      @default(2000000000) // ~2GB
+    32→    32→  usedStorage   Int      @default(0)
+    33→    33→  createdAt     DateTime @default(now())
+    34→    34→  updatedAt     DateTime @updatedAt
+    35→    35→
+    36→    36→  plan          Plan?   @relation(fields: [planId], references: [id])
+    37→    37→  users         User[]
+    38→    38→  students      Student[]
+    39→    39→  faculty       Faculty[]
+    40→    40→  parents       Parent[]
+    41→    41→  departments   Department[]
+    42→    42→  courses       Course[]
+    43→    43→  subjects      Subject[]
+    44→    44→  sections      Section[]
+    45→    45→  semesters     Semester[]
+    46→    46→  attendance    Attendance[]
+    47→    47→  marks         Marks[]
+    48→    48→  assignments   Assignment[]
+    49→    49→  submissions   Submission[]
+    50→    50→  materials     Material[]
+    51→    51→  timetables    Timetable[]
+    52→    52→  leaves        Leave[]
+    53→    53→  requests      Request[]
+    54→    54→  notifications Notification[]
+    55→    55→  announcements Announcement[]
+    56→    56→  companies     Company[]
+    57→    57→  drives        Drive[]
+    58→    58→  interviews    Interview[]
+    59→    59→  offers        Offer[]
+    60→    60→  fees          Fee[]
+    61→    61→  payments      Payment[]
+    62→    62→  scholarships  Scholarship[]
+    63→    63→  books         Book[]
+    64→    64→  bookIssues    BookIssue[]
+    65→    65→  hostels       Hostel[]
+    66→    66→  rooms         Room[]
+    67→    67→  roomAllocations RoomAllocation[]
+    68→    68→  hostelComplaints HostelComplaint[]
+    69→    69→  buses         Bus[]
+    70→    70→  busRoutes     BusRoute[]
+    71→    71→  busAllocations BusAllocation[]
+    72→    72→  chatMessages  ChatMessage[]
+    73→    73→  auditLogs     AuditLog[]
+    74→    74→  settings      TenantSetting[]
+    75→    75→  certificates  Certificate[]
+    76→    76→  events        Event[]
+    77→    77→  holidays      Holiday[]
+    78→    78→  portfolioItems PortfolioItem[]
+    79→    79→  certifications Certification[]
+    80→    80→  internships   Internship[]
+    81→    81→  projects      Project[]
+    82→    82→  publications  Publication[]
+    83→    83→  achievements  Achievement[]
+    84→    84→  studentSkills StudentSkill[]
+    85→    85→  counselingNotes CounselingNote[]
+    86→    86→  digitalTwinEvents DigitalTwinEvent[]
+    87→    87→
+    88→    88→  @@map("tenants")
+    89→    89→}
+    90→    90→
+    91→    91→model Plan {
+    92→    92→  id          String   @id @default(cuid())
+    93→    93→  name        String   @unique
+    94→    94→  slug        String   @unique
+    95→    95→  price       Float
+    96→    96→  billingCycle String  // monthly, yearly
+    97→    97→  maxStudents Int
+    98→    98→  maxFaculty  Int
+    99→    99→  maxStorage  Int
+   100→   100→  features    String   // JSON string of features
+   101→   101→  isActive    Boolean  @default(true)
+   102→   102→  createdAt   DateTime @default(now())
+   103→   103→  updatedAt   DateTime @updatedAt
+   104→   104→
+   105→   105→  tenants     Tenant[]
+   106→   106→
+   107→   107→  @@map("plans")
+   108→   108→}
+   109→   109→
+   110→   110→model TenantSetting {
+   111→   111→  id          String   @id @default(cuid())
+   112→   112→  tenantId    String
+   113→   113→  key         String
+   114→   114→  value       String
+   115→   115→  createdAt   DateTime @default(now())
+   116→   116→  updatedAt   DateTime @updatedAt
+   117→   117→
+   118→   118→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   119→   119→
+   120→   120→  @@unique([tenantId, key])
+   121→   121→  @@map("tenant_settings")
+   122→   122→}
+   123→   123→
+   124→   124→// =====================================================
+   125→   125→// USER & AUTHENTICATION
+   126→   126→// =====================================================
+   127→   127→
+   128→   128→enum UserRole {
+   129→   129→  SUPER_ADMIN
+   130→   130→  PRINCIPAL
+   131→   131→  DEAN
+   132→   132→  HOD
+   133→   133→  FACULTY
+   134→   134→  MENTOR
+   135→   135→  STUDENT
+   136→   136→  PARENT
+   137→   137→  PLACEMENT_OFFICER
+   138→   138→  FINANCE_OFFICER
+   139→   139→  LIBRARIAN
+   140→   140→  HOSTEL_WARDEN
+   141→   141→  TRANSPORT_MANAGER
+   142→   142→}
+   143→   143→
+   144→   144→model User {
+   145→   145→  id              String   @id @default(cuid())
+   146→   146→  tenantId        String
+   147→   147→  email           String
+   148→   148→  password        String
+   149→   149→  role            UserRole
+   150→   150→  name            String
+   151→   151→  phone           String?
+   152→   152→  avatar          String?
+   153→   153→  isActive        Boolean  @default(true)
+   154→   154→  isEmailVerified Boolean  @default(false)
+   155→   155→  isMfaEnabled    Boolean  @default(false)
+   156→   156→  mfaSecret       String?
+   157→   157→  lastLoginAt     DateTime?
+   158→   158→  lastLoginIp     String?
+   159→   159→  failedAttempts  Int      @default(0)
+   160→   160→  lockedUntil     DateTime?
+   161→   161→  createdAt       DateTime @default(now())
+   162→   162→  updatedAt       DateTime @updatedAt
+   163→   163→
+   164→   164→  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   165→   165→  student         Student?
+   166→   166→  faculty         Faculty?
+   167→   167→  parent          Parent?
+   168→   168→  sessions        Session[]
+   169→   169→  loginHistory    LoginHistory[]
+   170→   170→  auditLogs       AuditLog[]
+   171→   171→
+   172→   172→  @@unique([tenantId, email])
+   173→   173→  @@map("users")
+   174→   174→}
+   175→   175→
+   176→   176→model Session {
+   177→   177→  id           String   @id @default(cuid())
+   178→   178→  userId       String
+   179→   179→  token        String   @unique
+   180→   180→  refreshToken String   @unique
+   181→   181→  deviceInfo   String?
+   182→   182→  ipAddress    String?
+   183→   183→  userAgent    String?
+   184→   184→  expiresAt    DateTime
+   185→   185→  createdAt    DateTime @default(now())
+   186→   186→
+   187→   187→  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   188→   188→
+   189→   189→  @@map("sessions")
+   190→   190→}
+   191→   191→
+   192→   192→model LoginHistory {
+   193→   193→  id           String   @id @default(cuid())
+   194→   194→  userId       String
+   195→   195→  ipAddress    String?
+   196→   196→  deviceInfo   String?
+   197→   197→  userAgent    String?
+   198→   198→  status       String   // success, failed
+   199→   199→  failureReason String?
+   200→   200→  createdAt    DateTime @default(now())
+   201→   201→
+   202→   202→  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   203→   203→
+   204→   204→  @@map("login_history")
+   205→   205→}
+   206→   206→
+   207→   207→// =====================================================
+   208→   208→// ACADEMIC STRUCTURE
+   209→   209→// =====================================================
+   210→   210→
+   211→   211→model Department {
+   212→   212→  id          String   @id @default(cuid())
+   213→   213→  tenantId    String
+   214→   214→  name        String
+   215→   215→  code        String
+   216→   216→  hodId       String?
+   217→   217→  isActive    Boolean  @default(true)
+   218→   218→  createdAt   DateTime @default(now())
+   219→   219→  updatedAt   DateTime @updatedAt
+   220→   220→
+   221→   221→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   222→   222→  hod         Faculty? @relation("DepartmentHOD", fields: [hodId], references: [id])
+   223→   223→  faculty     Faculty[]
+   224→   224→  courses     Course[]
+   225→   225→  subjects    Subject[]
+   226→   226→  students    Student[]
+   227→   227→
+   228→   228→  @@unique([tenantId, code])
+   229→   229→  @@map("departments")
+   230→   230→}
+   231→   231→
+   232→   232→model Course {
+   233→   233→  id           String   @id @default(cuid())
+   234→   234→  tenantId     String
+   235→   235→  departmentId String
+   236→   236→  name         String
+   237→   237→  code         String
+   238→   238→  duration     Int      // in years
+   239→   239→  type         String   // UG, PG, PhD
+   240→   240→  isActive     Boolean  @default(true)
+   241→   241→  createdAt    DateTime @default(now())
+   242→   242→  updatedAt    DateTime @updatedAt
+   243→   243→
+   244→   244→  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   245→   245→  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+   246→   246→  students     Student[]
+   247→   247→  semesters    Semester[]
+   248→   248→
+   249→   249→  @@unique([tenantId, code])
+   250→   250→  @@map("courses")
+   251→   251→}
+   252→   252→
+   253→   253→model Semester {
+   254→   254→  id          String   @id @default(cuid())
+   255→   255→  tenantId    String
+   256→   256→  courseId    String
+   257→   257→  name        String   // Semester 1, Semester 2, etc.
+   258→   258→  number      Int
+   259→   259→  startDate   DateTime
+   260→   260→  endDate     DateTime
+   261→   261→  isActive    Boolean  @default(true)
+   262→   262→  createdAt   DateTime @default(now())
+   263→   263→  updatedAt   DateTime @updatedAt
+   264→   264→
+   265→   265→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   266→   266→  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+   267→   267→  sections    Section[]
+   268→   268→  subjects    Subject[]
+   269→   269→  attendance  Attendance[]
+   270→   270→  marks       Marks[]
+   271→   271→
+   272→   272→  @@unique([tenantId, courseId, number])
+   273→   273→  @@map("semesters")
+   274→   274→}
+   275→   275→
+   276→   276→model Section {
+   277→   277→  id          String   @id @default(cuid())
+   278→   278→  tenantId    String
+   279→   279→  semesterId  String
+   280→   280→  name        String   // Section A, Section B, etc.
+   281→   281→  capacity    Int      @default(60)
+   282→   282→  isActive    Boolean  @default(true)
+   283→   283→  createdAt   DateTime @default(now())
+   284→   284→  updatedAt   DateTime @updatedAt
+   285→   285→
+   286→   286→  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   287→   287→  semester    Semester   @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+   288→   288→  students    Student[]
+   289→   289→  timetables  Timetable[]
+   290→   290→
+   291→   291→  @@unique([tenantId, semesterId, name])
+   292→   292→  @@map("sections")
+   293→   293→}
+   294→   294→
+   295→   295→model Subject {
+   296→   296→  id           String   @id @default(cuid())
+   297→   297→  tenantId     String
+   298→   298→  departmentId String
+   299→   299→  semesterId   String?
+   300→   300→  name         String
+   301→   301→  code         String
+   302→   302→  credits      Int      @default(3)
+   303→   303→  type         String   // theory, lab, elective
+   304→   304→  facultyId    String?
+   305→   305→  isActive     Boolean  @default(true)
+   306→   306→  createdAt    DateTime @default(now())
+   307→   307→  updatedAt    DateTime @updatedAt
+   308→   308→
+   309→   309→  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   310→   310→  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+   311→   311→  semester     Semester?  @relation(fields: [semesterId], references: [id], onDelete: SetNull)
+   312→   312→  faculty      Faculty?   @relation("SubjectFaculty", fields: [facultyId], references: [id])
+   313→   313→  attendance   Attendance[]
+   314→   314→  marks        Marks[]
+   315→   315→  assignments  Assignment[]
+   316→   316→  materials    Material[]
+   317→   317→  timetables   Timetable[]
+   318→   318→
+   319→   319→  @@unique([tenantId, code])
+   320→   320→  @@map("subjects")
+   321→   321→}
+   322→   322→
+   323→   323→// =====================================================
+   324→   324→// STUDENT MANAGEMENT
+   325→   325→// =====================================================
+   326→   326→
+   327→   327→model Student {
+   328→   328→  id              String   @id @default(cuid())
+   329→   329→  tenantId        String
+   330→   330→  userId          String   @unique
+   331→   331→  departmentId    String
+   332→   332→  courseId        String
+   333→   333→  sectionId       String
+   334→   334→  rollNumber      String
+   335→   335→  admissionNumber String
+   336→   336→  admissionDate   DateTime
+   337→   337→  name            String
+   338→   338→  email           String
+   339→   339→  phone           String?
+   340→   340→  gender          String?
+   341→   341→  dateOfBirth     DateTime?
+   342→   342→  bloodGroup      String?
+   343→   343→  address         String?
+   344→   344→  city            String?
+   345→   345→  state           String?
+   346→   346→  pincode         String?
+   347→   347→  fatherName      String?
+   348→   348→  fatherPhone     String?
+   349→   349→  fatherEmail     String?
+   350→   350→  motherName      String?
+   351→   351→  motherPhone     String?
+   352→   352→  motherEmail     String?
+   353→   353→  guardianName    String?
+   354→   354→  guardianPhone   String?
+   355→   355→  guardianEmail   String?
+   356→   356→  mentorId        String?
+   357→   357→  currentSemester Int      @default(1)
+   358→   358→  cgpa            Float    @default(0)
+   359→   359→  totalCredits    Int      @default(0)
+   360→   360→  status          String   @default("active") // active, graduated, dropped, suspended
+   361→   361→  riskScore       Float    @default(0)
+   362→   362→  placementStatus String   @default("not_placed")
+   363→   363→  profileImage    String?
+   364→   364→  createdAt       DateTime @default(now())
+   365→   365→  updatedAt       DateTime @updatedAt
+   366→   366→
+   367→   367→  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   368→   368→  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+   369→   369→  department      Department @relation(fields: [departmentId], references: [id])
+   370→   370→  course          Course     @relation(fields: [courseId], references: [id])
+   371→   371→  section         Section    @relation(fields: [sectionId], references: [id])
+   372→   372→  mentor          Faculty?   @relation("StudentMentor", fields: [mentorId], references: [id])
+   373→   373→  attendance      Attendance[]
+   374→   374→  marks           Marks[]
+   375→   375→  submissions     Submission[]
+   376→   376→  leaves          Leave[]
+   377→   377→  requests        Request[]
+   378→   378→  portfolio       PortfolioItem[]
+   379→   379→  certifications  Certification[]
+   380→   380→  internships     Internship[]
+   381→   381→  projects        Project[]
+   382→   382→  publications    Publication[]
+   383→   383→  achievements    Achievement[]
+   384→   384→  skills          StudentSkill[]
+   385→   385→  interviews      Interview[]
+   386→   386→  offers          Offer[]
+   387→   387→  feePayments     Payment[]
+   388→   388→  bookIssues      BookIssue[]
+   389→   389→  roomAllocation  RoomAllocation[]
+   390→   390→  busAllocations  BusAllocation[]
+   391→   391→  counselingNotes CounselingNote[]
+   392→   392→  digitalTwinEvents DigitalTwinEvent[]
+   393→   393→  parentLinks     ParentStudent[]
+   394→   394→  certificates    Certificate[]
+   395→   395→
+   396→   396→  @@unique([tenantId, rollNumber])
+   397→   397→  @@unique([tenantId, admissionNumber])
+   398→   398→  @@map("students")
+   399→   399→}
+   400→   400→
+   401→   401→model Parent {
+   402→   402→  id            String   @id @default(cuid())
+   403→   403→  tenantId      String
+   404→   404→  userId        String   @unique
+   405→   405→  name          String
+   406→   406→  email         String
+   407→   407→  phone         String?
+   408→   408→  occupation    String?
+   409→   409→  address       String?
+   410→   410→  createdAt     DateTime @default(now())
+   411→   411→  updatedAt     DateTime @updatedAt
+   412→   412→
+   413→   413→  tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   414→   414→  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+   415→   415→  children      ParentStudent[]
+   416→   416→
+   417→   417→  @@map("parents")
+   418→   418→}
+   419→   419→
+   420→   420→model ParentStudent {
+   421→   421→  id          String   @id @default(cuid())
+   422→   422→  parentId    String
+   423→   423→  studentId   String
+   424→   424→  relation    String   // father, mother, guardian
+   425→   425→  isPrimary   Boolean  @default(false)
+   426→   426→  createdAt   DateTime @default(now())
+   427→   427→
+   428→   428→  parent      Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+   429→   429→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   430→   430→
+   431→   431→  @@unique([parentId, studentId])
+   432→   432→  @@map("parent_students")
+   433→   433→}
+   434→   434→
+   435→   435→// =====================================================
+   436→   436→// FACULTY MANAGEMENT
+   437→   437→// =====================================================
+   438→   438→
+   439→   439→model Faculty {
+   440→   440→  id              String   @id @default(cuid())
+   441→   441→  tenantId        String
+   442→   442→  userId          String   @unique
+   443→   443→  departmentId    String
+   444→   444→  employeeId      String
+   445→   445→  name            String
+   446→   446→  email           String
+   447→   447→  phone           String?
+   448→   448→  designation     String?
+   449→   449→  qualification   String?
+   450→   450→  specialization  String?
+   451→   451→  experience      Int      @default(0) // in years
+   452→   452→  joiningDate     DateTime
+   453→   453→  salary          Float?
+   454→   454→  isMentor        Boolean  @default(false)
+   455→   455→  mentorCapacity  Int      @default(20)
+   456→   456→  profileImage    String?
+   457→   457→  status          String   @default("active") // active, on_leave, resigned
+   458→   458→  createdAt       DateTime @default(now())
+   459→   459→  updatedAt       DateTime @updatedAt
+   460→   460→
+   461→   461→  tenant          Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   462→   462→  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+   463→   463→  department      Department   @relation(fields: [departmentId], references: [id])
+   464→   464→  hodOf           Department[] @relation("DepartmentHOD")
+   465→   465→  mentees         Student[]    @relation("StudentMentor")
+   466→   466→  subjects        Subject[]    @relation("SubjectFaculty")
+   467→   467→  attendanceMarked Attendance[]
+   468→   468→  marksEntered    Marks[]
+   469→   469→  assignments     Assignment[]
+   470→   470→  materials       Material[]
+   471→   471→  counselingNotes CounselingNote[]
+   472→   472→
+   473→   473→  @@unique([tenantId, employeeId])
+   474→   474→  @@map("faculty")
+   475→   475→}
+   476→   476→
+   477→   477→// =====================================================
+   478→   478→// ATTENDANCE & MARKS
+   479→   479→// =====================================================
+   480→   480→
+   481→   481→model Attendance {
+   482→   482→  id          String   @id @default(cuid())
+   483→   483→  tenantId    String
+   484→   484→  studentId   String
+   485→   485→  subjectId   String
+   486→   486→  semesterId  String
+   487→   487→  date        DateTime
+   488→   488→  status      String   // present, absent, late, excused
+   489→   489→  markedBy    String
+   490→   490→  remarks     String?
+   491→   491→  createdAt   DateTime @default(now())
+   492→   492→  updatedAt   DateTime @updatedAt
+   493→   493→
+   494→   494→  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   495→   495→  student     Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   496→   496→  subject     Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+   497→   497→  semester    Semester   @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+   498→   498→  markedByFaculty Faculty @relation(fields: [markedBy], references: [id])
+   499→   499→
+   500→   500→  @@unique([tenantId, studentId, subjectId, date])
+   501→   501→  @@map("attendance")
+   502→   502→}
+   503→   503→
+   504→   504→model Marks {
+   505→   505→  id              String   @id @default(cuid())
+   506→   506→  tenantId        String
+   507→   507→  studentId       String
+   508→   508→  subjectId       String
+   509→   509→  semesterId      String
+   510→   510→  examType        String   // internal1, internal2, assignment, semester
+   511→   511→  maxMarks        Float
+   512→   512→  obtainedMarks   Float
+   513→   513→  percentage      Float
+   514→   514→  grade           String?
+   515→   515→  enteredBy       String
+   516→   516→  createdAt       DateTime @default(now())
+   517→   517→  updatedAt       DateTime @updatedAt
+   518→   518→
+   519→   519→  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   520→   520→  student         Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   521→   521→  subject         Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+   522→   522→  semester        Semester   @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+   523→   523→  enteredByFaculty Faculty   @relation(fields: [enteredBy], references: [id])
+   524→   524→
+   525→   525→  @@unique([tenantId, studentId, subjectId, examType])
+   526→   526→  @@map("marks")
+   527→   527→}
+   528→   528→
+   529→   529→// =====================================================
+   530→   530→// ASSIGNMENTS & MATERIALS
+   531→   531→// =====================================================
+   532→   532→
+   533→   533→model Assignment {
+   534→   534→  id          String   @id @default(cuid())
+   535→   535→  tenantId    String
+   536→   536→  subjectId   String
+   537→   537→  facultyId   String
+   538→   538→  title       String
+   539→   539→  description String?
+   540→   540→  dueDate     DateTime
+   541→   541→  maxMarks    Float
+   542→   542→  status      String   @default("active") // active, closed
+   543→   543→  fileUrl     String?
+   544→   544→  createdAt   DateTime @default(now())
+   545→   545→  updatedAt   DateTime @updatedAt
+   546→   546→
+   547→   547→  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   548→   548→  subject     Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+   549→   549→  faculty     Faculty     @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+   550→   550→  submissions Submission[]
+   551→   551→
+   552→   552→  @@map("assignments")
+   553→   553→}
+   554→   554→
+   555→   555→model Submission {
+   556→   556→  id              String   @id @default(cuid())
+   557→   557→  tenantId        String
+   558→   558→  assignmentId    String
+   559→   559→  studentId       String
+   560→   560→  submittedAt     DateTime
+   561→   561→  fileUrl         String?
+   562→   562→  textContent     String?
+   563→   563→  marks           Float?
+   564→   564→  feedback        String?
+   565→   565→  evaluatedBy     String?
+   566→   566→  evaluatedAt     DateTime?
+   567→   567→  status          String   @default("submitted") // submitted, evaluated, late
+   568→   568→  createdAt       DateTime @default(now())
+   569→   569→  updatedAt       DateTime @updatedAt
+   570→   570→
+   571→   571→  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   572→   572→  assignment      Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+   573→   573→  student         Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   574→   574→
+   575→   575→  @@unique([assignmentId, studentId])
+   576→   576→  @@map("submissions")
+   577→   577→}
+   578→   578→
+   579→   579→model Material {
+   580→   580→  id          String   @id @default(cuid())
+   581→   581→  tenantId    String
+   582→   582→  subjectId   String
+   583→   583→  facultyId   String
+   584→   584→  title       String
+   585→   585→  description String?
+   586→   586→  type        String   // notes, pdf, video, link
+   587→   587→  fileUrl     String?
+   588→   588→  externalUrl String?
+   589→   589→  downloadCount Int    @default(0)
+   590→   590→  createdAt   DateTime @default(now())
+   591→   591→  updatedAt   DateTime @updatedAt
+   592→   592→
+   593→   593→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   594→   594→  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+   595→   595→  faculty     Faculty  @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+   596→   596→
+   597→   597→  @@map("materials")
+   598→   598→}
+   599→   599→
+   600→   600→// =====================================================
+   601→   601→// TIMETABLE
+   602→   602→// =====================================================
+   603→   603→
+   604→   604→model Timetable {
+   605→   605→  id          String   @id @default(cuid())
+   606→   606→  tenantId    String
+   607→   607→  sectionId   String
+   608→   608→  subjectId   String
+   609→   609→  day         String   // Monday, Tuesday, etc.
+   610→   610→  startTime   String
+   611→   611→  endTime     String
+   612→   612→  room        String?
+   613→   613→  createdAt   DateTime @default(now())
+   614→   614→  updatedAt   DateTime @updatedAt
+   615→   615→
+   616→   616→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   617→   617→  section     Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+   618→   618→  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+   619→   619→
+   620→   620→  @@map("timetables")
+   621→   621→}
+   622→   622→
+   623→   623→// =====================================================
+   624→   624→// LEAVES & REQUESTS
+   625→   625→// =====================================================
+   626→   626→
+   627→   627→model Leave {
+   628→   628→  id          String   @id @default(cuid())
+   629→   629→  tenantId    String
+   630→   630→  studentId   String
+   631→   631→  type        String   // sick, casual, emergency
+   632→   632→  startDate   DateTime
+   633→   633→  endDate     DateTime
+   634→   634→  reason      String
+   635→   635→  status      String   @default("pending") // pending, approved, rejected
+   636→   636→  approvedBy  String?
+   637→   637→  approvedAt  DateTime?
+   638→   638→  remarks     String?
+   639→   639→  createdAt   DateTime @default(now())
+   640→   640→  updatedAt   DateTime @updatedAt
+   641→   641→
+   642→   642→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   643→   643→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   644→   644→
+   645→   645→  @@map("leaves")
+   646→   646→}
+   647→   647→
+   648→   648→model Request {
+   649→   649→  id          String   @id @default(cuid())
+   650→   650→  tenantId    String
+   651→   651→  studentId   String
+   652→   652→  type        String   // bonafide, certificate, transcript, id_card
+   653→   653→  purpose     String?
+   654→   654→  status      String   @default("pending") // pending, approved, rejected, completed
+   655→   655→  processedBy String?
+   656→   656→  processedAt DateTime?
+   657→   657→  remarks     String?
+   658→   658→  fileUrl     String?
+   659→   659→  createdAt   DateTime @default(now())
+   660→   660→  updatedAt   DateTime @updatedAt
+   661→   661→
+   662→   662→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   663→   663→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   664→   664→
+   665→   665→  @@map("requests")
+   666→   666→}
+   667→   667→
+   668→   668→model Certificate {
+   669→   669→  id          String   @id @default(cuid())
+   670→   670→  tenantId    String
+   671→   671→  studentId   String
+   672→   672→  type        String
+   673→   673→  certificateNumber String
+   674→   674→  issueDate   DateTime
+   675→   675→  fileUrl     String?
+   676→   676→  createdAt   DateTime @default(now())
+   677→   677→
+   678→   678→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   679→   679→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   680→   680→
+   681→   681→  @@map("certificates")
+   682→   682→}
+   683→   683→
+   684→   684→// =====================================================
+   685→   685→// PORTFOLIO & SKILLS
+   686→   686→// =====================================================
+   687→   687→
+   688→   688→model PortfolioItem {
+   689→   689→  id          String   @id @default(cuid())
+   690→   690→  tenantId    String
+   691→   691→  studentId   String
+   692→   692→  type        String   // certification, project, internship, hackathon, publication, sports, activity
+   693→   693→  title       String
+   694→   694→  description String?
+   695→   695→  startDate   DateTime?
+   696→   696→  endDate     DateTime?
+   697→   697→  organization String?
+   698→   698→  role        String?
+   699→   699→  achievements String?
+   700→   700→  fileUrl     String?
+   701→   701→  verificationStatus String @default("pending") // pending, verified, rejected
+   702→   702→  createdAt   DateTime @default(now())
+   703→   703→  updatedAt   DateTime @updatedAt
+   704→   704→
+   705→   705→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   706→   706→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   707→   707→
+   708→   708→  @@map("portfolio_items")
+   709→   709→}
+   710→   710→
+   711→   711→model Certification {
+   712→   712→  id              String   @id @default(cuid())
+   713→   713→  tenantId        String
+   714→   714→  studentId       String
+   715→   715→  name            String
+   716→   716→  issuingOrg      String
+   717→   717→  issueDate       DateTime
+   718→   718→  expiryDate      DateTime?
+   719→   719→  credentialId    String?
+   720→   720→  credentialUrl   String?
+   721→   721→  fileUrl         String?
+   722→   722→  verificationStatus String @default("pending")
+   723→   723→  createdAt       DateTime @default(now())
+   724→   724→
+   725→   725→  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   726→   726→  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   727→   727→
+   728→   728→  @@map("certifications")
+   729→   729→}
+   730→   730→
+   731→   731→model Internship {
+   732→   732→  id          String   @id @default(cuid())
+   733→   733→  tenantId    String
+   734→   734→  studentId   String
+   735→   735→  company     String
+   736→   736→  role        String
+   737→   737→  startDate   DateTime
+   738→   738→  endDate     DateTime?
+   739→   739→  stipend     Float?
+   740→   740→  description String?
+   741→   741→  certificateUrl String?
+   742→   742→  status      String   @default("ongoing") // ongoing, completed
+   743→   743→  createdAt   DateTime @default(now())
+   744→   744→  updatedAt   DateTime @updatedAt
+   745→   745→
+   746→   746→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   747→   747→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   748→   748→
+   749→   749→  @@map("internships")
+   750→   750→}
+   751→   751→
+   752→   752→model Project {
+   753→   753→  id          String   @id @default(cuid())
+   754→   754→  tenantId    String
+   755→   755→  studentId   String
+   756→   756→  title       String
+   757→   757→  description String?
+   758→   758→  technologies String?
+   759→   759→  startDate   DateTime
+   760→   760→  endDate     DateTime?
+   761→   761→  role        String?
+   762→   762→  repositoryUrl String?
+   763→   763→  liveUrl     String?
+   764→   764→  status      String   @default("ongoing") // ongoing, completed
+   765→   765→  createdAt   DateTime @default(now())
+   766→   766→  updatedAt   DateTime @updatedAt
+   767→   767→
+   768→   768→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   769→   769→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   770→   770→
+   771→   771→  @@map("projects")
+   772→   772→}
+   773→   773→
+   774→   774→model Publication {
+   775→   775→  id          String   @id @default(cuid())
+   776→   776→  tenantId    String
+   777→   777→  studentId   String
+   778→   778→  title       String
+   779→   779→  authors     String
+   780→   780→  journal     String?
+   781→   781→  conference  String?
+   782→   782→  publishDate DateTime
+   783→   783→  doi         String?
+   784→   784→  url         String?
+   785→   785→  type        String   // journal, conference, book
+   786→   786→  createdAt   DateTime @default(now())
+   787→   787→
+   788→   788→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   789→   789→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   790→   790→
+   791→   791→  @@map("publications")
+   792→   792→}
+   793→   793→
+   794→   794→model Achievement {
+   795→   795→  id          String   @id @default(cuid())
+   796→   796→  tenantId    String
+   797→   797→  studentId   String
+   798→   798→  title       String
+   799→   799→  category    String   // academic, sports, cultural, technical
+   800→   800→  level       String   // college, state, national, international
+   801→   801→  date        DateTime
+   802→   802→  description String?
+   803→   803→  certificateUrl String?
+   804→   804→  createdAt   DateTime @default(now())
+   805→   805→
+   806→   806→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   807→   807→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   808→   808→
+   809→   809→  @@map("achievements")
+   810→   810→}
+   811→   811→
+   812→   812→model StudentSkill {
+   813→   813→  id          String   @id @default(cuid())
+   814→   814→  tenantId    String
+   815→   815→  studentId   String
+   816→   816→  skillName   String
+   817→   817→  proficiency String   // beginner, intermediate, advanced, expert
+   818→   818→  endorsedBy  String?
+   819→   819→  endorsedAt  DateTime?
+   820→   820→  createdAt   DateTime @default(now())
+   821→   821→
+   822→   822→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   823→   823→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   824→   824→
+   825→   825→  @@unique([studentId, skillName])
+   826→   826→  @@map("student_skills")
+   827→   827→}
+   828→   828→
+   829→   829→// =====================================================
+   830→   830→// PLACEMENT
+   831→   831→// =====================================================
+   832→   832→
+   833→   833→model Company {
+   834→   834→  id          String   @id @default(cuid())
+   835→   835→  tenantId    String
+   836→   836→  name        String
+   837→   837→  industry    String?
+   838→   838→  website     String?
+   839→   839→  description String?
+   840→   840→  logo        String?
+   841→   841→  address     String?
+   842→   842→  contactPerson String?
+   843→   843→  contactEmail  String?
+   844→   844→  contactPhone  String?
+   845→   845→  isActive    Boolean  @default(true)
+   846→   846→  createdAt   DateTime @default(now())
+   847→   847→  updatedAt   DateTime @updatedAt
+   848→   848→
+   849→   849→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   850→   850→  drives      Drive[]
+   851→   851→
+   852→   852→  @@unique([tenantId, name])
+   853→   853→  @@map("companies")
+   854→   854→}
+   855→   855→
+   856→   856→model Drive {
+   857→   857→  id              String   @id @default(cuid())
+   858→   858→  tenantId        String
+   859→   859→  companyId       String
+   860→   860→  title           String
+   861→   861→  description     String?
+   862→   862→  eligibleCourses String?  // JSON array of course IDs
+   863→   863→  eligibleDepartments String?
+   864→   864→  minCgpa         Float?
+   865→   865→  maxBacklogs     Int?
+   866→   866→  eligibleYears   String?  // JSON array of passing years
+   867→   867→  packageMin      Float?
+   868→   868→  packageMax      Float?
+   869→   869→  locations       String?
+   870→   870→  positions       String?
+   871→   871→  lastDate        DateTime
+   872→   872→  driveDate       DateTime
+   873→   873→  status          String   @default("upcoming") // upcoming, ongoing, completed, cancelled
+   874→   874→  createdAt       DateTime @default(now())
+   875→   875→  updatedAt       DateTime @updatedAt
+   876→   876→
+   877→   877→  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   878→   878→  company         Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+   879→   879→  interviews      Interview[]
+   880→   880→  offers          Offer[]
+   881→   881→
+   882→   882→  @@map("drives")
+   883→   883→}
+   884→   884→
+   885→   885→model Interview {
+   886→   886→  id          String   @id @default(cuid())
+   887→   887→  tenantId    String
+   888→   888→  driveId     String
+   889→   889→  studentId   String
+   890→   890→  round       String   // aptitude, technical, hr, group_discussion
+   891→   891→  scheduledAt DateTime?
+   892→   892→  status      String   @default("scheduled") // scheduled, completed, selected, rejected
+   893→   893→  feedback    String?
+   894→   894→  interviewBy String?
+   895→   895→  createdAt   DateTime @default(now())
+   896→   896→  updatedAt   DateTime @updatedAt
+   897→   897→
+   898→   898→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   899→   899→  drive       Drive    @relation(fields: [driveId], references: [id], onDelete: Cascade)
+   900→   900→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   901→   901→
+   902→   902→  @@map("interviews")
+   903→   903→}
+   904→   904→
+   905→   905→model Offer {
+   906→   906→  id          String   @id @default(cuid())
+   907→   907→  tenantId    String
+   908→   908→  driveId     String
+   909→   909→  studentId   String
+   910→   910→  package     Float
+   911→   911→  designation String?
+   912→   912→  location    String?
+   913→   913→  offerDate   DateTime
+   914→   914→  joiningDate DateTime?
+   915→   915→  status      String   @default("pending") // pending, accepted, rejected, joined
+   916→   916→  offerLetter String?
+   917→   917→  createdAt   DateTime @default(now())
+   918→   918→  updatedAt   DateTime @updatedAt
+   919→   919→
+   920→   920→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   921→   921→  drive       Drive    @relation(fields: [driveId], references: [id], onDelete: Cascade)
+   922→   922→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   923→   923→
+   924→   924→  @@map("offers")
+   925→   925→}
+   926→   926→
+   927→   927→// =====================================================
+   928→   928→// FINANCE
+   929→   929→// =====================================================
+   930→   930→
+   931→   931→model Fee {
+   932→   932→  id          String   @id @default(cuid())
+   933→   933→  tenantId    String
+   934→   934→  name        String
+   935→   935→  type        String   // tuition, hostel, transport, exam, library, lab
+   936→   936→  amount      Float
+   937→   937→  courseId    String?
+   938→   938→  semesterId  String?
+   939→   939→  dueDate     DateTime?
+   940→   940→  academicYear String?
+   941→   941→  isActive    Boolean  @default(true)
+   942→   942→  createdAt   DateTime @default(now())
+   943→   943→  updatedAt   DateTime @updatedAt
+   944→   944→
+   945→   945→  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   946→   946→  payments    Payment[]
+   947→   947→
+   948→   948→  @@map("fees")
+   949→   949→}
+   950→   950→
+   951→   951→model Payment {
+   952→   952→  id              String   @id @default(cuid())
+   953→   953→  tenantId        String
+   954→   954→  feeId           String?
+   955→   955→  studentId       String
+   956→   956→  amount          Float
+   957→   957→  paymentMethod   String   // online, cash, cheque, dd
+   958→   958→  transactionId   String?
+   959→   959→  paymentDate     DateTime
+   960→   960→  status          String   @default("pending") // pending, completed, failed, refunded
+   961→   961→  receiptNumber   String?
+   962→   962→  receiptUrl      String?
+   963→   963→  remarks         String?
+   964→   964→  createdAt       DateTime @default(now())
+   965→   965→  updatedAt       DateTime @updatedAt
+   966→   966→
+   967→   967→  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   968→   968→  fee             Fee?     @relation(fields: [feeId], references: [id])
+   969→   969→  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+   970→   970→
+   971→   971→  @@map("payments")
+   972→   972→}
+   973→   973→
+   974→   974→model Scholarship {
+   975→   975→  id          String   @id @default(cuid())
+   976→   976→  tenantId    String
+   977→   977→  name        String
+   978→   978→  description String?
+   979→   979→  amount      Float
+   980→   980→  eligibility String?
+   981→   981→  deadline    DateTime?
+   982→   982→  provider    String?
+   983→   983→  isActive    Boolean  @default(true)
+   984→   984→  createdAt   DateTime @default(now())
+   985→   985→  updatedAt   DateTime @updatedAt
+   986→   986→
+   987→   987→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+   988→   988→
+   989→   989→  @@map("scholarships")
+   990→   990→}
+   991→   991→
+   992→   992→// =====================================================
+   993→   993→// LIBRARY
+   994→   994→// =====================================================
+   995→   995→
+   996→   996→model Book {
+   997→   997→  id              String   @id @default(cuid())
+   998→   998→  tenantId        String
+   999→   999→  isbn            String?
+  1000→  1000→  title           String
+  1001→  1001→  author          String
+  1002→  1002→  publisher       String?
+  1003→  1003→  publicationYear Int?
+  1004→  1004→  category        String?
+  1005→  1005→  totalCopies     Int      @default(1)
+  1006→  1006→  availableCopies Int      @default(1)
+  1007→  1007→  shelf           String?
+  1008→  1008→  price           Float?
+  1009→  1009→  description     String?
+  1010→  1010→  coverImage      String?
+  1011→  1011→  createdAt       DateTime @default(now())
+  1012→  1012→  updatedAt       DateTime @updatedAt
+  1013→  1013→
+  1014→  1014→  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1015→  1015→  issues          BookIssue[]
+  1016→  1016→
+  1017→  1017→  @@map("books")
+  1018→  1018→}
+  1019→  1019→
+  1020→  1020→model BookIssue {
+  1021→  1021→  id          String   @id @default(cuid())
+  1022→  1022→  tenantId    String
+  1023→  1023→  bookId      String
+  1024→  1024→  studentId   String
+  1025→  1025→  issueDate   DateTime
+  1026→  1026→  dueDate     DateTime
+  1027→  1027→  returnDate  DateTime?
+  1028→  1028→  fine        Float    @default(0)
+  1029→  1029→  status      String   @default("issued") // issued, returned, lost
+  1030→  1030→  remarks     String?
+  1031→  1031→  createdAt   DateTime @default(now())
+  1032→  1032→  updatedAt   DateTime @updatedAt
+  1033→  1033→
+  1034→  1034→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1035→  1035→  book        Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  1036→  1036→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  1037→  1037→
+  1038→  1038→  @@map("book_issues")
+  1039→  1039→}
+  1040→  1040→
+  1041→  1041→// =====================================================
+  1042→  1042→// HOSTEL
+  1043→  1043→// =====================================================
+  1044→  1044→
+  1045→  1045→model Hostel {
+  1046→  1046→  id          String   @id @default(cuid())
+  1047→  1047→  tenantId    String
+  1048→  1048→  name        String
+  1049→  1049→  type        String   // boys, girls
+  1050→  1050→  totalRooms  Int
+  1051→  1051→  wardenId    String?
+  1052→  1052→  address     String?
+  1053→  1053→  facilities  String?  // JSON array
+  1054→  1054→  createdAt   DateTime @default(now())
+  1055→  1055→  updatedAt   DateTime @updatedAt
+  1056→  1056→
+  1057→  1057→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1058→  1058→  rooms       Room[]
+  1059→  1059→
+  1060→  1060→  @@map("hostels")
+  1061→  1061→}
+  1062→  1062→
+  1063→  1063→model Room {
+  1064→  1064→  id          String   @id @default(cuid())
+  1065→  1065→  tenantId    String
+  1066→  1066→  hostelId    String
+  1067→  1067→  roomNumber  String
+  1068→  1068→  floor       Int?
+  1069→  1069→  capacity    Int      @default(2)
+  1070→  1070→  occupied    Int      @default(0)
+  1071→  1071→  type        String   // single, double, triple, dormitory
+  1072→  1072→  status      String   @default("available") // available, full, maintenance
+  1073→  1073→  rent        Float?
+  1074→  1074→  createdAt   DateTime @default(now())
+  1075→  1075→  updatedAt   DateTime @updatedAt
+  1076→  1076→
+  1077→  1077→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1078→  1078→  hostel      Hostel   @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  1079→  1079→  allocations RoomAllocation[]
+  1080→  1080→
+  1081→  1081→  @@unique([hostelId, roomNumber])
+  1082→  1082→  @@map("rooms")
+  1083→  1083→}
+  1084→  1084→
+  1085→  1085→model RoomAllocation {
+  1086→  1086→  id          String   @id @default(cuid())
+  1087→  1087→  tenantId    String
+  1088→  1088→  roomId      String
+  1089→  1089→  studentId   String
+  1090→  1090→  bedNumber   Int?
+  1091→  1091→  allocationDate DateTime
+  1092→  1092→  vacateDate  DateTime?
+  1093→  1093→  status      String   @default("active") // active, vacated
+  1094→  1094→  createdAt   DateTime @default(now())
+  1095→  1095→  updatedAt   DateTime @updatedAt
+  1096→  1096→
+  1097→  1097→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1098→  1098→  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  1099→  1099→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  1100→  1100→
+  1101→  1101→  @@unique([roomId, studentId])
+  1102→  1102→  @@map("room_allocations")
+  1103→  1103→}
+  1104→  1104→
+  1105→  1105→model HostelComplaint {
+  1106→  1106→  id          String   @id @default(cuid())
+  1107→  1107→  tenantId    String
+  1108→  1108→  studentId   String?
+  1109→  1109→  hostelId    String?
+  1110→  1110→  roomNumber  String?
+  1111→  1111→  category    String   // electrical, plumbing, furniture, cleaning, other
+  1112→  1112→  description String
+  1113→  1113→  status      String   @default("pending") // pending, in_progress, resolved
+  1114→  1114→  resolvedAt  DateTime?
+  1115→  1115→  resolvedBy  String?
+  1116→  1116→  remarks     String?
+  1117→  1117→  createdAt   DateTime @default(now())
+  1118→  1118→  updatedAt   DateTime @updatedAt
+  1119→  1119→
+  1120→  1120→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1121→  1121→
+  1122→  1122→  @@map("hostel_complaints")
+  1123→  1123→}
+  1124→  1124→
+  1125→  1125→// =====================================================
+  1126→  1126→// TRANSPORT
+  1127→  1127→// =====================================================
+  1128→  1128→
+  1129→  1129→model Bus {
+  1130→  1130→  id          String   @id @default(cuid())
+  1131→  1131→  tenantId    String
+  1132→  1132→  busNumber   String
+  1133→  1133→  registrationNumber String?
+  1134→  1134→  capacity    Int
+  1135→  1135→  driverName  String?
+  1136→  1136→  driverPhone String?
+  1137→  1137→  status      String   @default("active") // active, maintenance, inactive
+  1138→  1138→  createdAt   DateTime @default(now())
+  1139→  1139→  updatedAt   DateTime @updatedAt
+  1140→  1140→
+  1141→  1141→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1142→  1142→  routes      BusRoute[]
+  1143→  1143→
+  1144→  1144→  @@unique([tenantId, busNumber])
+  1145→  1145→  @@map("buses")
+  1146→  1146→}
+  1147→  1147→
+  1148→  1148→model BusRoute {
+  1149→  1149→  id          String   @id @default(cuid())
+  1150→  1150→  tenantId    String
+  1151→  1151→  busId       String
+  1152→  1152→  routeNumber String
+  1153→  1153→  routeName   String
+  1154→  1154→  startPoint  String
+  1155→  1155→  endPoint    String
+  1156→  1156→  stops       String?  // JSON array of stops
+  1157→  1157→  distance    Float?
+  1158→  1158→  timings     String?
+  1159→  1159→  fare        Float?
+  1160→  1160→  createdAt   DateTime @default(now())
+  1161→  1161→  updatedAt   DateTime @updatedAt
+  1162→  1162→
+  1163→  1163→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1164→  1164→  bus         Bus      @relation(fields: [busId], references: [id], onDelete: Cascade)
+  1165→  1165→  allocations BusAllocation[]
+  1166→  1166→
+  1167→  1167→  @@map("bus_routes")
+  1168→  1168→}
+  1169→  1169→
+  1170→  1170→model BusAllocation {
+  1171→  1171→  id          String   @id @default(cuid())
+  1172→  1172→  tenantId    String
+  1173→  1173→  routeId     String
+  1174→  1174→  studentId   String
+  1175→  1175→  boardingStop String?
+  1176→  1176→  allocationDate DateTime
+  1177→  1177→  status      String   @default("active") // active, cancelled
+  1178→  1178→  createdAt   DateTime @default(now())
+  1179→  1179→  updatedAt   DateTime @updatedAt
+  1180→  1180→
+  1181→  1181→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1182→  1182→  route       BusRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  1183→  1183→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  1184→  1184→
+  1185→  1185→  @@unique([routeId, studentId])
+  1186→  1186→  @@map("bus_allocations")
+  1187→  1187→}
+  1188→  1188→
+  1189→  1189→// =====================================================
+  1190→  1190→// COMMUNICATION
+  1191→  1191→// =====================================================
+  1192→  1192→
+  1193→  1193→model Notification {
+  1194→  1194→  id          String   @id @default(cuid())
+  1195→  1195→  tenantId    String
+  1196→  1196→  userId      String?
+  1197→  1197→  title       String
+  1198→  1198→  message     String
+  1199→  1199→  type        String   // system, academic, finance, placement, general
+  1200→  1200→  isRead      Boolean  @default(false)
+  1201→  1201→  actionUrl   String?
+  1202→  1202→  createdAt   DateTime @default(now())
+  1203→  1203→
+  1204→  1204→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1205→  1205→
+  1206→  1206→  @@map("notifications")
+  1207→  1207→}
+  1208→  1208→
+  1209→  1209→model Announcement {
+  1210→  1210→  id          String   @id @default(cuid())
+  1211→  1211→  tenantId    String
+  1212→  1212→  title       String
+  1213→  1213→  content     String
+  1214→  1214→  category    String   // general, academic, placement, event, emergency
+  1215→  1215→  priority    String   @default("normal") // low, normal, high, urgent
+  1216→  1216→  targetRoles String?  // JSON array of roles
+  1217→  1217→  targetDepartments String?
+  1218→  1218→  publishedAt DateTime?
+  1219→  1219→  expiresAt   DateTime?
+  1220→  1220→  createdBy   String?
+  1221→  1221→  createdAt   DateTime @default(now())
+  1222→  1222→  updatedAt   DateTime @updatedAt
+  1223→  1223→
+  1224→  1224→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1225→  1225→
+  1226→  1226→  @@map("announcements")
+  1227→  1227→}
+  1228→  1228→
+  1229→  1229→model ChatMessage {
+  1230→  1230→  id          String   @id @default(cuid())
+  1231→  1231→  tenantId    String
+  1232→  1232→  senderId    String
+  1233→  1233→  receiverId  String
+  1234→  1234→  message     String
+  1235→  1235→  isRead      Boolean  @default(false)
+  1236→  1236→  readAt      DateTime?
+  1237→  1237→  createdAt   DateTime @default(now())
+  1238→  1238→
+  1239→  1239→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1240→  1240→
+  1241→  1241→  @@map("chat_messages")
+  1242→  1242→}
+  1243→  1243→
+  1244→  1244→model CounselingNote {
+  1245→  1245→  id          String   @id @default(cuid())
+  1246→  1246→  tenantId    String
+  1247→  1247→  studentId   String
+  1248→  1248→  facultyId   String
+  1249→  1249→  date        DateTime
+  1250→  1250→  notes       String
+  1251→  1251→  category    String?  // academic, personal, career, behavioral
+  1252→  1252→  followUp    DateTime?
+  1253→  1253→  isPrivate   Boolean  @default(false)
+  1254→  1254→  createdAt   DateTime @default(now())
+  1255→  1255→  updatedAt   DateTime @updatedAt
+  1256→  1256→
+  1257→  1257→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1258→  1258→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  1259→  1259→  faculty     Faculty  @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  1260→  1260→
+  1261→  1261→  @@map("counseling_notes")
+  1262→  1262→}
+  1263→  1263→
+  1264→  1264→// =====================================================
+  1265→  1265→// DIGITAL TWIN
+  1266→  1266→// =====================================================
+  1267→  1267→
+  1268→  1268→model DigitalTwinEvent {
+  1269→  1269→  id          String   @id @default(cuid())
+  1270→  1270→  tenantId    String
+  1271→  1271→  studentId   String
+  1272→  1272→  eventType   String   // attendance, marks, certification, internship, project, placement, counseling
+  1273→  1273→  title       String
+  1274→  1274→  description String?
+  1275→  1275→  metadata    String?  // JSON string
+  1276→  1276→  eventDate   DateTime
+  1277→  1277→  createdAt   DateTime @default(now())
+  1278→  1278→
+  1279→  1279→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1280→  1280→  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  1281→  1281→
+  1282→  1282→  @@map("digital_twin_events")
+  1283→  1283→}
+  1284→  1284→
+  1285→  1285→// =====================================================
+  1286→  1286→// AUDIT & SYSTEM
+  1287→  1287→// =====================================================
+  1288→  1288→
+  1289→  1289→model AuditLog {
+  1290→  1290→  id          String   @id @default(cuid())
+  1291→  1291→  tenantId    String
+  1292→  1292→  userId      String?
+  1293→  1293→  action      String
+  1294→  1294→  entity      String
+  1295→  1295→  entityId    String?
+  1296→  1296→  oldValues   String?  // JSON
+  1297→  1297→  newValues   String?  // JSON
+  1298→  1298→  ipAddress   String?
+  1299→  1299→  userAgent   String?
+  1300→  1300→  createdAt   DateTime @default(now())
+  1301→  1301→
+  1302→  1302→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1303→  1303→  user        User?    @relation(fields: [userId], references: [id])
+  1304→  1304→
+  1305→  1305→  @@map("audit_logs")
+  1306→  1306→}
+  1307→  1307→
+  1308→  1308→model Event {
+  1309→  1309→  id          String   @id @default(cuid())
+  1310→  1310→  tenantId    String
+  1311→  1311→  title       String
+  1312→  1312→  description String?
+  1313→  1313→  type        String   // academic, cultural, sports, workshop, seminar
+  1314→  1314→  startDate   DateTime
+  1315→  1315→  endDate     DateTime?
+  1316→  1316→  venue       String?
+  1317→  1317→  organizer   String?
+  1318→  1318→  isPublic    Boolean  @default(true)
+  1319→  1319→  createdAt   DateTime @default(now())
+  1320→  1320→  updatedAt   DateTime @updatedAt
+  1321→  1321→
+  1322→  1322→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1323→  1323→
+  1324→  1324→  @@map("events")
+  1325→  1325→}
+  1326→  1326→
+  1327→  1327→model Holiday {
+  1328→  1328→  id          String   @id @default(cuid())
+  1329→  1329→  tenantId    String
+  1330→  1330→  name        String
+  1331→  1331→  date        DateTime
+  1332→  1332→  type        String   // national, state, institutional
+  1333→  1333→  description String?
+  1334→  1334→  createdAt   DateTime @default(now())
+  1335→  1335→
+  1336→  1336→  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  1337→  1337→
+  1338→  1338→  @@map("holidays")
+  1339→  1339→}
+  1340→  1340→

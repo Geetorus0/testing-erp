@@ -1,0 +1,785 @@
+     1→'use client'
+     2→
+     3→import { useState, useEffect } from 'react'
+     4→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+     5→import { Badge } from '@/components/ui/badge'
+     6→import { Progress } from '@/components/ui/progress'
+     7→import { ScrollArea } from '@/components/ui/scroll-area'
+     8→import { Skeleton } from '@/components/ui/skeleton'
+     9→import {
+    10→  Users,
+    11→  GraduationCap,
+    12→  Building2,
+    13→  BookOpen,
+    14→  CalendarCheck,
+    15→  Briefcase,
+    16→  TrendingUp,
+    17→  DollarSign,
+    18→  AlertTriangle,
+    19→  Bell,
+    20→  CalendarDays,
+    21→  Megaphone,
+    22→  Clock,
+    23→  ArrowUpRight,
+    24→  ArrowDownRight,
+    25→  Activity
+    26→} from 'lucide-react'
+    27→import {
+    28→  BarChart,
+    29→  Bar,
+    30→  XAxis,
+    31→  YAxis,
+    32→  CartesianGrid,
+    33→  Tooltip,
+    34→  Legend,
+    35→  ResponsiveContainer,
+    36→  PieChart,
+    37→  Pie,
+    38→  Cell,
+    39→  LineChart,
+    40→  Line,
+    41→  RadarChart,
+    42→  PolarGrid,
+    43→  PolarAngleAxis,
+    44→  PolarRadiusAxis,
+    45→  Radar
+    46→} from 'recharts'
+    47→import {
+    48→  ChartContainer,
+    49→  ChartTooltip,
+    50→  ChartTooltipContent,
+    51→  ChartLegend,
+    52→  ChartLegendContent
+    53→} from '@/components/ui/chart'
+    54→
+    55→// Types
+    56→interface OverviewStats {
+    57→  totalStudents: number
+    58→  totalFaculty: number
+    59→  totalDepartments: number
+    60→  totalCourses: number
+    61→  overallAttendanceRate: number
+    62→  overallPlacementRate: number
+    63→  activePlacementDrives: number
+    64→  revenueCollected: number
+    65→  previousMonthRevenue: number
+    66→}
+    67→
+    68→interface DepartmentData {
+    69→  name: string
+    70→  code: string
+    71→  students: number
+    72→  faculty: number
+    73→  attendance: number
+    74→  cgpa: number
+    75→  placementRate: number
+    76→  riskStudents: number
+    77→}
+    78→
+    79→interface PlacementData {
+    80→  companyVisits: number
+    81→  offersMade: number
+    82→  highestPackage: number
+    83→  averagePackage: number
+    84→  departmentWisePlacement: Array<{
+    85→    department: string
+    86→    placed: number
+    87→    total: number
+    88→    rate: number
+    89→  }>
+    90→  monthlyTrend: Array<{
+    91→    month: string
+    92→    drives: number
+    93→    offers: number
+    94→  }>
+    95→}
+    96→
+    97→interface FacultyData {
+    98→  totalFaculty: number
+    99→  qualificationDistribution: Array<{
+   100→    name: string
+   101→    value: number
+   102→    color: string
+   103→  }>
+   104→  experienceDistribution: Array<{
+   105→    range: string
+   106→    count: number
+   107→  }>
+   108→  mentorAllocation: {
+   109→    totalMentors: number
+   110→    totalMentees: number
+   111→    unallocatedStudents: number
+   112→  }
+   113→}
+   114→
+   115→interface RiskData {
+   116→  highRiskCount: number
+   117→  mediumRiskCount: number
+   118→  departmentWiseRisk: Array<{
+   119→    department: string
+   120→    high: number
+   121→    medium: number
+   122→    low: number
+   123→  }>
+   124→  recentCounselingNotes: Array<{
+   125→    id: string
+   126→    studentName: string
+   127→    department: string
+   128→    date: string
+   129→    category: string
+   130→    notes: string
+   131→    facultyName: string
+   132→  }>
+   133→}
+   134→
+   135→interface ActivityData {
+   136→  announcements: Array<{
+   137→    id: string
+   138→    title: string
+   139→    category: string
+   140→    priority: string
+   141→    date: string
+   142→  }>
+   143→  events: Array<{
+   144→    id: string
+   145→    title: string
+   146→    type: string
+   147→    date: string
+   148→    venue: string
+   149→  }>
+   150→  notifications: Array<{
+   151→    id: string
+   152→    message: string
+   153→    type: string
+   154→    time: string
+   155→  }>
+   156→}
+   157→
+   158→interface DashboardData {
+   159→  overview: OverviewStats
+   160→  departments: DepartmentData[]
+   161→  placement: PlacementData
+   162→  faculty: FacultyData
+   163→  risk: RiskData
+   164→  activities: ActivityData
+   165→}
+   166→
+   167→const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
+   168→
+   169→const chartConfig = {
+   170→  students: { label: 'Students', color: '#10B981' },
+   171→  faculty: { label: 'Faculty', color: '#3B82F6' },
+   172→  attendance: { label: 'Attendance %', color: '#F59E0B' },
+   173→  cgpa: { label: 'Avg CGPA', color: '#8B5CF6' },
+   174→  placed: { label: 'Placed', color: '#10B981' },
+   175→  total: { label: 'Total', color: '#94A3B8' }
+   176→}
+   177→
+   178→export default function PrincipalDashboard() {
+   179→  const [data, setData] = useState<DashboardData | null>(null)
+   180→  const [loading, setLoading] = useState(true)
+   181→  const [activeTab, setActiveTab] = useState('overview')
+   182→
+   183→  useEffect(() => {
+   184→    fetchDashboardData()
+   185→  }, [])
+   186→
+   187→  const fetchDashboardData = async () => {
+   188→    try {
+   189→      const response = await fetch('/api/principal/dashboard')
+   190→      if (response.ok) {
+   191→        const result = await response.json()
+   192→        setData(result)
+   193→      }
+   194→    } catch (error) {
+   195→      console.error('Failed to fetch dashboard data:', error)
+   196→    } finally {
+   197→      setLoading(false)
+   198→    }
+   199→  }
+   200→
+   201→  if (loading) {
+   202→    return <DashboardSkeleton />
+   203→  }
+   204→
+   205→  if (!data) {
+   206→    return (
+   207→      <Card className="p-8">
+   208→        <CardContent className="text-center text-muted-foreground">
+   209→          Failed to load dashboard data. Please try again.
+   210→        </CardContent>
+   211→      </Card>
+   212→    )
+   213→  }
+   214→
+   215→  const revenueChange = data.overview.previousMonthRevenue > 0
+   216→    ? ((data.overview.revenueCollected - data.overview.previousMonthRevenue) / data.overview.previousMonthRevenue * 100).toFixed(1)
+   217→    : 0
+   218→
+   219→  return (
+   220→    <div className="space-y-6">
+   221→      {/* Header */}
+   222→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+   223→        <div>
+   224→          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Principal Dashboard</h1>
+   225→          <p className="text-muted-foreground">Institution-wide analytics and insights</p>
+   226→        </div>
+   227→        <div className="flex items-center gap-2">
+   228→          <Badge variant="outline" className="gap-1">
+   229→            <Clock className="h-3 w-3" />
+   230→            Last updated: {new Date().toLocaleTimeString()}
+   231→          </Badge>
+   232→        </div>
+   233→      </div>
+   234→
+   235→      {/* Overview Cards */}
+   236→      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+   237→        <OverviewCard
+   238→          title="Total Students"
+   239→          value={data.overview.totalStudents.toLocaleString()}
+   240→          icon={<Users className="h-5 w-5" />}
+   241→          color="emerald"
+   242→        />
+   243→        <OverviewCard
+   244→          title="Total Faculty"
+   245→          value={data.overview.totalFaculty.toLocaleString()}
+   246→          icon={<GraduationCap className="h-5 w-5" />}
+   247→          color="blue"
+   248→        />
+   249→        <OverviewCard
+   250→          title="Departments"
+   251→          value={data.overview.totalDepartments.toString()}
+   252→          icon={<Building2 className="h-5 w-5" />}
+   253→          color="purple"
+   254→        />
+   255→        <OverviewCard
+   256→          title="Courses"
+   257→          value={data.overview.totalCourses.toString()}
+   258→          icon={<BookOpen className="h-5 w-5" />}
+   259→          color="amber"
+   260→        />
+   261→      </div>
+   262→
+   263→      {/* Secondary Stats */}
+   264→      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+   265→        <StatCard
+   266→          title="Attendance Rate"
+   267→          value={`${data.overview.overallAttendanceRate}%`}
+   268→          icon={<CalendarCheck className="h-4 w-4" />}
+   269→          progress={data.overview.overallAttendanceRate}
+   270→          color="emerald"
+   271→        />
+   272→        <StatCard
+   273→          title="Placement Rate"
+   274→          value={`${data.overview.overallPlacementRate}%`}
+   275→          icon={<Briefcase className="h-4 w-4" />}
+   276→          progress={data.overview.overallPlacementRate}
+   277→          color="blue"
+   278→        />
+   279→        <StatCard
+   280→          title="Active Drives"
+   281→          value={data.overview.activePlacementDrives.toString()}
+   282→          icon={<TrendingUp className="h-4 w-4" />}
+   283→          color="purple"
+   284→        />
+   285→        <StatCard
+   286→          title="Revenue (This Month)"
+   287→          value={`₹${(data.overview.revenueCollected / 100000).toFixed(1)}L`}
+   288→          icon={<DollarSign className="h-4 w-4" />}
+   289→          change={parseFloat(revenueChange)}
+   290→          color="amber"
+   291→        />
+   292→      </div>
+   293→
+   294→      {/* Main Content Grid */}
+   295→      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+   296→        {/* Department Analytics */}
+   297→        <Card className="lg:col-span-2">
+   298→          <CardHeader>
+   299→            <CardTitle className="flex items-center gap-2">
+   300→              <Building2 className="h-5 w-5 text-emerald-600" />
+   301→              Department-wise Analytics
+   302→            </CardTitle>
+   303→            <CardDescription>Comparative analysis across departments</CardDescription>
+   304→          </CardHeader>
+   305→          <CardContent>
+   306→            <div className="space-y-4">
+   307→              <div className="flex gap-2 overflow-x-auto pb-2">
+   308→                {['students', 'faculty', 'attendance', 'cgpa'].map((tab) => (
+   309→                  <button
+   310→                    key={tab}
+   311→                    onClick={() => setActiveTab(tab)}
+   312→                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+   313→                      activeTab === tab
+   314→                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+   315→                        : 'bg-muted hover:bg-muted/80'
+   316→                    }`}
+   317→                  >
+   318→                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+   319→                  </button>
+   320→                ))}
+   321→              </div>
+   322→              
+   323→              <div className="h-[300px]">
+   324→                <ResponsiveContainer width="100%" height="100%">
+   325→                  <BarChart data={data.departments} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+   326→                    <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+   327→                    <XAxis dataKey="code" tick={{ fontSize: 12 }} />
+   328→                    <YAxis tick={{ fontSize: 12 }} />
+   329→                    <Tooltip
+   330→                      contentStyle={{
+   331→                        backgroundColor: 'hsl(var(--card))',
+   332→                        borderColor: 'hsl(var(--border))',
+   333→                        borderRadius: '8px'
+   334→                      }}
+   335→                    />
+   336→                    <Legend />
+   337→                    <Bar
+   338→                      dataKey={activeTab}
+   339→                      fill={chartConfig[activeTab as keyof typeof chartConfig]?.color || '#10B981'}
+   340→                      radius={[4, 4, 0, 0]}
+   341→                    />
+   342→                  </BarChart>
+   343→                </ResponsiveContainer>
+   344→              </div>
+   345→            </div>
+   346→
+   347→            {/* Department Table */}
+   348→            <ScrollArea className="h-[200px] mt-4">
+   349→              <table className="w-full text-sm">
+   350→                <thead className="sticky top-0 bg-card">
+   351→                  <tr className="border-b">
+   352→                    <th className="text-left py-2 font-medium">Department</th>
+   353→                    <th className="text-right py-2 font-medium">Students</th>
+   354→                    <th className="text-right py-2 font-medium">Faculty</th>
+   355→                    <th className="text-right py-2 font-medium">Attendance</th>
+   356→                    <th className="text-right py-2 font-medium">Avg CGPA</th>
+   357→                  </tr>
+   358→                </thead>
+   359→                <tbody>
+   360→                  {data.departments.map((dept, index) => (
+   361→                    <tr key={index} className="border-b hover:bg-muted/50">
+   362→                      <td className="py-2">{dept.name}</td>
+   363→                      <td className="text-right py-2">{dept.students}</td>
+   364→                      <td className="text-right py-2">{dept.faculty}</td>
+   365→                      <td className="text-right py-2">{dept.attendance}%</td>
+   366→                      <td className="text-right py-2">{dept.cgpa.toFixed(2)}</td>
+   367→                    </tr>
+   368→                  ))}
+   369→                </tbody>
+   370→              </table>
+   371→            </ScrollArea>
+   372→          </CardContent>
+   373→        </Card>
+   374→
+   375→        {/* Risk Analysis */}
+   376→        <Card>
+   377→          <CardHeader>
+   378→            <CardTitle className="flex items-center gap-2">
+   379→              <AlertTriangle className="h-5 w-5 text-amber-500" />
+   380→              Risk Analysis
+   381→            </CardTitle>
+   382→            <CardDescription>Students requiring attention</CardDescription>
+   383→          </CardHeader>
+   384→          <CardContent className="space-y-4">
+   385→            <div className="grid grid-cols-2 gap-4">
+   386→              <div className="p-4 bg-red-50 dark:bg-red-950/30 rounded-lg">
+   387→                <p className="text-sm text-muted-foreground">High Risk</p>
+   388→                <p className="text-2xl font-bold text-red-600">{data.risk.highRiskCount}</p>
+   389→              </div>
+   390→              <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+   391→                <p className="text-sm text-muted-foreground">Medium Risk</p>
+   392→                <p className="text-2xl font-bold text-amber-600">{data.risk.mediumRiskCount}</p>
+   393→              </div>
+   394→            </div>
+   395→
+   396→            <div className="h-[150px]">
+   397→              <ResponsiveContainer width="100%" height="100%">
+   398→                <BarChart data={data.risk.departmentWiseRisk} layout="vertical">
+   399→                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+   400→                  <XAxis type="number" tick={{ fontSize: 10 }} />
+   401→                  <YAxis dataKey="department" type="category" tick={{ fontSize: 10 }} width={60} />
+   402→                  <Tooltip />
+   403→                  <Bar dataKey="high" stackId="a" fill="#EF4444" radius={[0, 2, 2, 0]} />
+   404→                  <Bar dataKey="medium" stackId="a" fill="#F59E0B" />
+   405→                </BarChart>
+   406→              </ResponsiveContainer>
+   407→            </div>
+   408→
+   409→            <div className="space-y-2">
+   410→              <p className="text-sm font-medium">Recent Counseling Notes</p>
+   411→              <ScrollArea className="h-[150px]">
+   412→                {data.risk.recentCounselingNotes.map((note) => (
+   413→                  <div key={note.id} className="p-3 bg-muted/50 rounded-lg mb-2">
+   414→                    <div className="flex items-center justify-between mb-1">
+   415→                      <span className="font-medium text-sm">{note.studentName}</span>
+   416→                      <Badge variant="outline" className="text-xs">{note.category}</Badge>
+   417→                    </div>
+   418→                    <p className="text-xs text-muted-foreground line-clamp-2">{note.notes}</p>
+   419→                    <p className="text-xs text-muted-foreground mt-1">By: {note.facultyName}</p>
+   420→                  </div>
+   421→                ))}
+   422→              </ScrollArea>
+   423→            </div>
+   424→          </CardContent>
+   425→        </Card>
+   426→      </div>
+   427→
+   428→      {/* Placement and Faculty Analytics */}
+   429→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   430→        {/* Placement Analytics */}
+   431→        <Card>
+   432→          <CardHeader>
+   433→            <CardTitle className="flex items-center gap-2">
+   434→              <Briefcase className="h-5 w-5 text-blue-500" />
+   435→              Placement Analytics
+   436→            </CardTitle>
+   437→            <CardDescription>Current academic year placement statistics</CardDescription>
+   438→          </CardHeader>
+   439→          <CardContent className="space-y-4">
+   440→            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+   441→              <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+   442→                <p className="text-xs text-muted-foreground">Company Visits</p>
+   443→                <p className="text-xl font-bold text-blue-600">{data.placement.companyVisits}</p>
+   444→              </div>
+   445→              <div className="text-center p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
+   446→                <p className="text-xs text-muted-foreground">Offers Made</p>
+   447→                <p className="text-xl font-bold text-emerald-600">{data.placement.offersMade}</p>
+   448→              </div>
+   449→              <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+   450→                <p className="text-xs text-muted-foreground">Highest Package</p>
+   451→                <p className="text-xl font-bold text-purple-600">₹{data.placement.highestPackage}L</p>
+   452→              </div>
+   453→              <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+   454→                <p className="text-xs text-muted-foreground">Avg Package</p>
+   455→                <p className="text-xl font-bold text-amber-600">₹{data.placement.averagePackage}L</p>
+   456→              </div>
+   457→            </div>
+   458→
+   459→            <div className="h-[200px]">
+   460→              <ResponsiveContainer width="100%" height="100%">
+   461→                <BarChart data={data.placement.departmentWisePlacement}>
+   462→                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+   463→                  <XAxis dataKey="department" tick={{ fontSize: 10 }} />
+   464→                  <YAxis tick={{ fontSize: 10 }} />
+   465→                  <Tooltip />
+   466→                  <Legend />
+   467→                  <Bar dataKey="placed" fill="#10B981" name="Placed" radius={[2, 2, 0, 0]} />
+   468→                  <Bar dataKey="total" fill="#94A3B8" name="Total" radius={[2, 2, 0, 0]} />
+   469→                </BarChart>
+   470→              </ResponsiveContainer>
+   471→            </div>
+   472→
+   473→            {/* Monthly Trend */}
+   474→            <div className="h-[150px]">
+   475→              <p className="text-sm font-medium mb-2">Monthly Trend</p>
+   476→              <ResponsiveContainer width="100%" height="100%">
+   477→                <LineChart data={data.placement.monthlyTrend}>
+   478→                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+   479→                  <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+   480→                  <YAxis tick={{ fontSize: 10 }} />
+   481→                  <Tooltip />
+   482→                  <Line type="monotone" dataKey="drives" stroke="#3B82F6" strokeWidth={2} dot={false} />
+   483→                  <Line type="monotone" dataKey="offers" stroke="#10B981" strokeWidth={2} dot={false} />
+   484→                </LineChart>
+   485→              </ResponsiveContainer>
+   486→            </div>
+   487→          </CardContent>
+   488→        </Card>
+   489→
+   490→        {/* Faculty Analytics */}
+   491→        <Card>
+   492→          <CardHeader>
+   493→            <CardTitle className="flex items-center gap-2">
+   494→              <GraduationCap className="h-5 w-5 text-purple-500" />
+   495→              Faculty Analytics
+   496→            </CardTitle>
+   497→            <CardDescription>Faculty distribution and allocation</CardDescription>
+   498→          </CardHeader>
+   499→          <CardContent className="space-y-4">
+   500→            <div className="grid grid-cols-3 gap-3">
+   501→              <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+   502→                <p className="text-xs text-muted-foreground">Total Faculty</p>
+   503→                <p className="text-xl font-bold text-purple-600">{data.faculty.totalFaculty}</p>
+   504→              </div>
+   505→              <div className="text-center p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
+   506→                <p className="text-xs text-muted-foreground">Mentors</p>
+   507→                <p className="text-xl font-bold text-emerald-600">{data.faculty.mentorAllocation.totalMentors}</p>
+   508→              </div>
+   509→              <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+   510→                <p className="text-xs text-muted-foreground">Unallocated</p>
+   511→                <p className="text-xl font-bold text-amber-600">{data.faculty.mentorAllocation.unallocatedStudents}</p>
+   512→              </div>
+   513→            </div>
+   514→
+   515→            {/* Qualification Distribution */}
+   516→            <div>
+   517→              <p className="text-sm font-medium mb-2">Qualification Distribution</p>
+   518→              <div className="flex items-center gap-4">
+   519→                <div className="h-[150px] w-[150px]">
+   520→                  <ResponsiveContainer width="100%" height="100%">
+   521→                    <PieChart>
+   522→                      <Pie
+   523→                        data={data.faculty.qualificationDistribution}
+   524→                        cx="50%"
+   525→                        cy="50%"
+   526→                        innerRadius={40}
+   527→                        outerRadius={60}
+   528→                        paddingAngle={2}
+   529→                        dataKey="value"
+   530→                      >
+   531→                        {data.faculty.qualificationDistribution.map((entry, index) => (
+   532→                          <Cell key={`cell-${index}`} fill={entry.color} />
+   533→                        ))}
+   534→                      </Pie>
+   535→                      <Tooltip />
+   536→                    </PieChart>
+   537→                  </ResponsiveContainer>
+   538→                </div>
+   539→                <div className="flex-1 space-y-2">
+   540→                  {data.faculty.qualificationDistribution.map((item, index) => (
+   541→                    <div key={index} className="flex items-center gap-2">
+   542→                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+   543→                      <span className="text-sm">{item.name}</span>
+   544→                      <span className="text-sm text-muted-foreground ml-auto">{item.value}</span>
+   545→                    </div>
+   546→                  ))}
+   547→                </div>
+   548→              </div>
+   549→            </div>
+   550→
+   551→            {/* Experience Distribution */}
+   552→            <div>
+   553→              <p className="text-sm font-medium mb-2">Experience Distribution</p>
+   554→              <div className="space-y-2">
+   555→                {data.faculty.experienceDistribution.map((item, index) => (
+   556→                  <div key={index} className="flex items-center gap-3">
+   557→                    <span className="text-sm w-20">{item.range}</span>
+   558→                    <Progress value={(item.count / data.faculty.totalFaculty) * 100} className="flex-1 h-2" />
+   559→                    <span className="text-sm text-muted-foreground w-8">{item.count}</span>
+   560→                  </div>
+   561→                ))}
+   562→              </div>
+   563→            </div>
+   564→          </CardContent>
+   565→        </Card>
+   566→      </div>
+   567→
+   568→      {/* Recent Activities */}
+   569→      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+   570→        {/* Announcements */}
+   571→        <Card>
+   572→          <CardHeader>
+   573→            <CardTitle className="flex items-center gap-2 text-base">
+   574→              <Megaphone className="h-4 w-4 text-blue-500" />
+   575→              Recent Announcements
+   576→            </CardTitle>
+   577→          </CardHeader>
+   578→          <CardContent>
+   579→            <ScrollArea className="h-[250px]">
+   580→              <div className="space-y-3">
+   581→                {data.activities.announcements.map((item) => (
+   582→                  <div key={item.id} className="p-3 bg-muted/50 rounded-lg">
+   583→                    <div className="flex items-start justify-between gap-2">
+   584→                      <p className="font-medium text-sm">{item.title}</p>
+   585→                      <Badge
+   586→                        variant={item.priority === 'urgent' ? 'destructive' : item.priority === 'high' ? 'default' : 'secondary'}
+   587→                        className="text-xs shrink-0"
+   588→                      >
+   589→                        {item.priority}
+   590→                      </Badge>
+   591→                    </div>
+   592→                    <div className="flex items-center gap-2 mt-1">
+   593→                      <Badge variant="outline" className="text-xs">{item.category}</Badge>
+   594→                      <span className="text-xs text-muted-foreground">{item.date}</span>
+   595→                    </div>
+   596→                  </div>
+   597→                ))}
+   598→              </div>
+   599→            </ScrollArea>
+   600→          </CardContent>
+   601→        </Card>
+   602→
+   603→        {/* Events */}
+   604→        <Card>
+   605→          <CardHeader>
+   606→            <CardTitle className="flex items-center gap-2 text-base">
+   607→              <CalendarDays className="h-4 w-4 text-emerald-500" />
+   608→              Upcoming Events
+   609→            </CardTitle>
+   610→          </CardHeader>
+   611→          <CardContent>
+   612→            <ScrollArea className="h-[250px]">
+   613→              <div className="space-y-3">
+   614→                {data.activities.events.map((item) => (
+   615→                  <div key={item.id} className="p-3 bg-muted/50 rounded-lg">
+   616→                    <div className="flex items-start justify-between gap-2">
+   617→                      <p className="font-medium text-sm">{item.title}</p>
+   618→                      <Badge variant="outline" className="text-xs shrink-0">{item.type}</Badge>
+   619→                    </div>
+   620→                    <div className="mt-1 text-xs text-muted-foreground space-y-1">
+   621→                      <p>{item.date}</p>
+   622→                      <p>Venue: {item.venue}</p>
+   623→                    </div>
+   624→                  </div>
+   625→                ))}
+   626→              </div>
+   627→            </ScrollArea>
+   628→          </CardContent>
+   629→        </Card>
+   630→
+   631→        {/* Notifications */}
+   632→        <Card>
+   633→          <CardHeader>
+   634→            <CardTitle className="flex items-center gap-2 text-base">
+   635→              <Bell className="h-4 w-4 text-amber-500" />
+   636→              System Notifications
+   637→            </CardTitle>
+   638→          </CardHeader>
+   639→          <CardContent>
+   640→            <ScrollArea className="h-[250px]">
+   641→              <div className="space-y-3">
+   642→                {data.activities.notifications.map((item) => (
+   643→                  <div key={item.id} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+   644→                    <Activity className={`h-4 w-4 mt-0.5 shrink-0 ${
+   645→                      item.type === 'success' ? 'text-emerald-500' :
+   646→                      item.type === 'warning' ? 'text-amber-500' :
+   647→                      item.type === 'error' ? 'text-red-500' : 'text-blue-500'
+   648→                    }`} />
+   649→                    <div className="flex-1 min-w-0">
+   650→                      <p className="text-sm">{item.message}</p>
+   651→                      <p className="text-xs text-muted-foreground mt-1">{item.time}</p>
+   652→                    </div>
+   653→                  </div>
+   654→                ))}
+   655→              </div>
+   656→            </ScrollArea>
+   657→          </CardContent>
+   658→        </Card>
+   659→      </div>
+   660→    </div>
+   661→  )
+   662→}
+   663→
+   664→// Helper Components
+   665→function OverviewCard({ title, value, icon, color }: {
+   666→  title: string
+   667→  value: string
+   668→  icon: React.ReactNode
+   669→  color: 'emerald' | 'blue' | 'purple' | 'amber'
+   670→}) {
+   671→  const colors = {
+   672→    emerald: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600',
+   673→    blue: 'bg-blue-50 dark:bg-blue-950/30 text-blue-600',
+   674→    purple: 'bg-purple-50 dark:bg-purple-950/30 text-purple-600',
+   675→    amber: 'bg-amber-50 dark:bg-amber-950/30 text-amber-600'
+   676→  }
+   677→
+   678→  return (
+   679→    <Card className="hover:shadow-md transition-shadow">
+   680→      <CardContent className="p-4">
+   681→        <div className="flex items-center justify-between">
+   682→          <div>
+   683→            <p className="text-xs text-muted-foreground">{title}</p>
+   684→            <p className="text-2xl font-bold mt-1">{value}</p>
+   685→          </div>
+   686→          <div className={`p-2 rounded-lg ${colors[color]}`}>
+   687→            {icon}
+   688→          </div>
+   689→        </div>
+   690→      </CardContent>
+   691→    </Card>
+   692→  )
+   693→}
+   694→
+   695→function StatCard({ title, value, icon, progress, change, color }: {
+   696→  title: string
+   697→  value: string
+   698→  icon: React.ReactNode
+   699→  progress?: number
+   700→  change?: number
+   701→  color: 'emerald' | 'blue' | 'purple' | 'amber'
+   702→}) {
+   703→  const colors = {
+   704→    emerald: 'text-emerald-600',
+   705→    blue: 'text-blue-600',
+   706→    purple: 'text-purple-600',
+   707→    amber: 'text-amber-600'
+   708→  }
+   709→
+   710→  return (
+   711→    <Card className="hover:shadow-md transition-shadow">
+   712→      <CardContent className="p-4">
+   713→        <div className="flex items-center gap-2 mb-2">
+   714→          <span className={colors[color]}>{icon}</span>
+   715→          <span className="text-xs text-muted-foreground">{title}</span>
+   716→        </div>
+   717→        <div className="flex items-end justify-between">
+   718→          <p className="text-xl font-bold">{value}</p>
+   719→          {change !== undefined && (
+   720→            <span className={`text-xs flex items-center gap-1 ${change >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+   721→              {change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+   722→              {Math.abs(change)}%
+   723→            </span>
+   724→          )}
+   725→        </div>
+   726→        {progress !== undefined && (
+   727→          <Progress value={progress} className="h-1.5 mt-2" />
+   728→        )}
+   729→      </CardContent>
+   730→    </Card>
+   731→  )
+   732→}
+   733→
+   734→function DashboardSkeleton() {
+   735→  return (
+   736→    <div className="space-y-6">
+   737→      <div className="flex justify-between items-center">
+   738→        <div>
+   739→          <Skeleton className="h-8 w-48" />
+   740→          <Skeleton className="h-4 w-64 mt-2" />
+   741→        </div>
+   742→        <Skeleton className="h-6 w-32" />
+   743→      </div>
+   744→
+   745→      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+   746→        {[...Array(4)].map((_, i) => (
+   747→          <Card key={i}>
+   748→            <CardContent className="p-4">
+   749→              <Skeleton className="h-4 w-20" />
+   750→              <Skeleton className="h-8 w-16 mt-2" />
+   751→            </CardContent>
+   752→          </Card>
+   753→        ))}
+   754→      </div>
+   755→
+   756→      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+   757→        {[...Array(4)].map((_, i) => (
+   758→          <Card key={i}>
+   759→            <CardContent className="p-4">
+   760→              <Skeleton className="h-4 w-24" />
+   761→              <Skeleton className="h-6 w-20 mt-2" />
+   762→              <Skeleton className="h-2 w-full mt-2" />
+   763→            </CardContent>
+   764→          </Card>
+   765→        ))}
+   766→      </div>
+   767→
+   768→      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+   769→        <Card className="lg:col-span-2">
+   770→          <CardContent className="p-6">
+   771→            <Skeleton className="h-6 w-48" />
+   772→            <Skeleton className="h-[300px] w-full mt-4" />
+   773→          </CardContent>
+   774→        </Card>
+   775→        <Card>
+   776→          <CardContent className="p-6">
+   777→            <Skeleton className="h-6 w-32" />
+   778→            <Skeleton className="h-[300px] w-full mt-4" />
+   779→          </CardContent>
+   780→        </Card>
+   781→      </div>
+   782→    </div>
+   783→  )
+   784→}
+   785→
